@@ -26,6 +26,15 @@
 #define XACCEL_CAP_BULK_OUTPUT (1U << 6) // Does this function product larage outputs
 
 #define MAX_VERSION_SUPPORTED 1`// The latest version of descriptor supported
+=======
+#define XACCEL_MAGIC_OFFSET     0x0
+#define XACCEL_VERSION_OFFSET   0x4
+#define XACCEL_HEAD_SIZE_OFFSET 0x6
+#define XACCEL_TOT_SIZE_OFFSET  0x8
+#define XACCEL_NUM_FUNC_OFFSET  0x12
+#define XACCEL_FLAG_OFFSET      0x14
+#define XACCEL_CHECKSUM_OFFSET  0x16
+#define XACCEL_DEVICE_ID_OFFSET 0x20
 
 struct xaccel_desc_header 
 {

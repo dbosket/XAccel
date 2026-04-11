@@ -8,7 +8,7 @@
  */
 
 
-
+#include "linux/kernel.h"
 #include "../include/xaccel_desc.h"
 
 
