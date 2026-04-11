@@ -48,8 +48,6 @@ void build_descriptor_header(void* source_addr, xaccel_desc_header* head_out)
       return -ENOMEM;
     }
     
-    //TODO: Potentially Read as Full 128 or 256 Bytes (1 bus access instead of ~6)
-    //TODO: If read as full byte stack then do byte arithmetic in Software
     head_out->magic         = ioread32(source_addr);
     head_out->version       = ioread16(source_addr + XACCEL_VERSION_OFFSET);
     head_out->header_size   = ioread16(source_addr + XACCEL_HEAD_SIZE_OFFSET); 
@@ -59,11 +57,31 @@ void build_descriptor_header(void* source_addr, xaccel_desc_header* head_out)
     head_out->checksum      = ioread32(source_addr + XACCEL_CHECKSUM_OFFSET);
     head_out->device_id     = ioread32(source_addr + XACCEL_DEVICE_ID_OFFSET);
     
-    
   return head_out;
 }
 
 void build_function_header(void* source_addr, xaccel_func_header* head_out)
 {
+  if (source_addr){
+	head_out = kmalloc(sizeof(xaccel_desc_header), GFP_KERNEL );
+	if (!head_out){
+		pr_err("Failed to Allocate Memory\n");
+		return -ENOMEM:
+	}
+	
+	head_out->func_id      = ioread16(source_addr);
+	head_out->func_type    = ioread16(source_addr);
+	head_out->func_version = ioread16(source_addr);
+	head_out->irq_index    = ioread16(source_addr);
+	
+	head_out->mmio_offset  = ioread32(source_addr);
+	head_out->mmio_size    = ioread32(source_addr);
+
+	head_out->caps         = ioread32(source_addr);
+	head_out->reg_layout   = ioread32(source_addr);
+
+	head_out->ext_offset   = ioread32(source_addr);
+	head_out->size 	       = ioread32(source_addr);
+
   return;
 }

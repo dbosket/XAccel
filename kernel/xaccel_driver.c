@@ -1,5 +1,6 @@
 #include "xaccel_driver.h"
 #include "../include/macros.h"
+#include "../include/xaccel_desc.h"
 
 MODULE_LICENSE(LICENSE);
 MODULE_AUTHOR(AUTHOR);
@@ -7,6 +8,16 @@ MODULE_AUTHOR(AUTHOR);
 
 static struct xaccel_dev g_xaccel_dev;
 
+
+struct file_operations xaccel_fops = {
+	.owner          = THIS_MODULE,
+	.llseek         = NULL,
+	.read           = xaccel_read,
+	.write          = xaccel_write,
+	.unlocked_ioctl = xaccel_ioctl,
+	.open           = xaccel_open, 
+	.release        = xaccel_close, 
+};
 
 // Structure is init allocates stuff and cleanup and releases them
 
@@ -52,20 +63,21 @@ static int __init xaccel_init(void)
 	g_xaccel_dev.class = class_create(XACCEL_CLASS_NAME);
 	if (IS_ERR(g_xaccel_dev.device))
 	{
-		ret = PTR_ERR(g_xaccel_dev.device)
+		ret = PTR_ERR(g_xaccel_dev.device);
 		g_xaccel_dev.device = NULL;
 		pr_err("xaccel: device_create failed: %d\n", ret);
 		class_destroy(g_xaccel_dev.class);
 		g_xaccel_dev.class = NULL;
 		cdev_del(&g_xaccel_dev.cdev); // Remove char dev from system
-		unregister_chr
+		unregister_chrdev_region(g_xaccel_dev.devt, 1);
+		return ret;
 
 
 	return 0;
 }
 
 
-static void __exit xaccel_cleanup(void)
+static void __exit xaccel_exit(void)
 {
 	// Make sure undoing anything that we've done up into this point
 	// Make sure we're checking things before releasing resources
@@ -97,7 +109,7 @@ static ssize_t xaccel_write( struct file* fp, const char __user* buf, size_t cnt
 }
 
 
-static int xaccel_ioctl( struct file* fp, unsigned int cmd, unsigned long arg)
+static long int xaccel_ioctl( struct file* fp, unsigned int cmd, unsigned long int arg)
 {
 	pr_info("xaccel: ioctl called, cmd=0x%x\n", cmd);
 
@@ -122,16 +134,6 @@ static int xaccel_close(struct inode* node, struct file* fp)
 	pr_info("xaccel: device closed\n");
 	return 0;
 }
-
-struct file_operations xaccel_fops = {
-	.owner          = THIS_MODULE,
-	.llseek         = NULL,
-	.read           = xaccel_read,
-	.write          = xaccel_write,
-	.unlocked_ioctl = xaccel_ioctl,
-	.open           = xaccel_open, 
-	.release        = xaccel_close, 
-};
 
 
 module_init(xaccel_init);

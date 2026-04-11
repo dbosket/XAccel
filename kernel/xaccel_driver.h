@@ -23,10 +23,9 @@ struct xaccel_dev
 	struct device *device;
 };
 
-
 static int __init xaccel_init(void);
 
-static void __exit xaccel_cleanup(void);
+static void __exit xaccel_exit(void);
 
 static ssize_t xaccel_read( struct file* fp, char __user* buf, size_t cnt, loff_t* ppos);
 
@@ -35,3 +34,5 @@ static ssize_t xaccel_write( struct file* fp, const char __user* buf, size_t cnt
 static int xaccel_open(struct inode* node, struct file* fp);
 
 static int xaccel_close(struct inode* node, struct file* fp);
+
+static long int xaccel_ioctl(struct file* fp, unsigned int cmd, unsigned long int arg);
