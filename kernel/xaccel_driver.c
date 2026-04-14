@@ -4,7 +4,7 @@
 
 MODULE_LICENSE(LICENSE);
 MODULE_AUTHOR(AUTHOR);
-
+MODULE_DESCRIPTION(DESCRIPTION);
 
 static struct xaccel_dev g_xaccel_dev;
 
@@ -39,6 +39,7 @@ static int __init xaccel_init(void)
 	int ret;
 	pr_info("xaccel: inti\n");
 
+	sema_init(&g_xaccel_dev.sem, MAX_LOCK_HOLDERS);
 	// Allocating device numbers for new character device
 	ret = alloc_chrdev_region(&g_xaccel_dev.devt, FIRST_MINOR, NUM_DEV_REQUESTED, XACCEL_NAME);
 	if (ret)
@@ -72,7 +73,7 @@ static int __init xaccel_init(void)
 		unregister_chrdev_region(g_xaccel_dev.devt, 1);
 		return ret;
 
-
+	}
 	return 0;
 }
 
@@ -122,7 +123,7 @@ static int xaccel_open(struct inode* node, struct file* fp)
 {
 	struct xaccel_dev *dev;
 
-	dev = container_of(inode->i_cdev, struct xaccel_dev, cdev);
+	dev = container_of(node->i_cdev, struct xaccel_dev, cdev);
 	fp->private_data = dev;
 
 	pr_info("xaccel: device opened\n");

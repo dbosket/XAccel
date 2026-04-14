@@ -28,7 +28,7 @@ int xaccel_core_destroy_function_device(struct xaccel_device *xdev)
 }
 
 // Is this a valid descriptor
-int check_descriptor_header(xaccel_desc_header* header)
+int check_descriptor_header(struct xaccel_desc_header* header)
 {
     if (!header) return -1;
     if (header->magic == XACCEL_DESC_MAGIC) return 0;
@@ -38,7 +38,7 @@ int check_descriptor_header(xaccel_desc_header* header)
 }
 
 
-void build_descriptor_header(void* source_addr, xaccel_desc_header* head_out)
+void build_descriptor_header(void* source_addr, struct xaccel_desc_header* head_out)
 {
   if (source_addr){
 
@@ -60,7 +60,7 @@ void build_descriptor_header(void* source_addr, xaccel_desc_header* head_out)
   return head_out;
 }
 
-void build_function_header(void* source_addr, xaccel_func_header* head_out)
+void build_function_header(void* source_addr, struct xaccel_func_header* head_out)
 {
   if (source_addr){
 	head_out = kmalloc(sizeof(xaccel_desc_header), GFP_KERNEL );

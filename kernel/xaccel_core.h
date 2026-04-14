@@ -33,11 +33,6 @@
 	#define XACCEL_REG_LAYOUT_V1 1
 
 
-
-
-
-
-
 #endif
 
 
@@ -68,7 +63,7 @@ void build_descriptor_header(void* source_addr, xaccel_desc_header* head_out);
 
 
 // Read in from a MM address of of x bytes based on size specified in header
-void build_function_header(void* source_addr, xaccel_func_header* head_out);
+void build_function_header(void* source_addr, xaccel_func_desc* head_out);
 
 
 
