@@ -7,10 +7,14 @@
  *
  */
 
+#ifndef XACCEL_CORE_H
+#define XACCEL_CORE_H
 
-#include "linux/kernel.h"
+
+#include <linux/kernel.h>
+#include <linux/io.h>
 #include "../include/xaccel_desc.h"
-
+#include "../include/xaccel_macros.h"
 
 #ifdef debug
 	#define XACCEL_REG_CONTROL    0x00
@@ -41,31 +45,31 @@
 
 
 
-// Initialize the 
+// Initialize the the xaccelerator object
 int xaccel_core_init(struct device *dev, void __iomem *base, size_t mmio_size);
-void xaccel_core_cleanup(struct xaccel_device *xdev);
+
+// Clean up the accelerator object 
+void xaccel_core_cleanup(struct xaccel_dev *xdev);
 
 // Parse the descriptor recieved
-int xaccel_core_parse_descriptor(struct xaccel_device *xdev);
+int xaccel_core_parse_descriptor(struct xaccel_dev *xdev);
 
 // Create device for a particular function
-int xaccel_core_create_function_devices(struct xaccel_device *xdev);
+int xaccel_core_create_function_devices(struct xaccel_dev *xdev);
 
 // Destory the devices created in the function
-void xaccel_core_destroy_function_devices(struct xaccel_device *xdev);
+int xaccel_core_destroy_function_device(struct xaccel_dev *xdev);
 
 
 // Function to read in raw bytes, return 0 if positive or negative number otherwise
-int check_descriptor_header(xaccel_desc_header* header);
+int check_descriptor_header(struct xaccel_desc_header* header);
 
 // Read in from a MM address of x bytes to build a struct descriptor header
-void build_descriptor_header(void* source_addr, xaccel_desc_header* head_out);
+int build_descriptor_header(void* source_addr, struct xaccel_desc_header* head_out);
 
 
 // Read in from a MM address of of x bytes based on size specified in header
-void build_function_header(void* source_addr, xaccel_func_desc* head_out);
+int build_function_header(void* source_addr, struct xaccel_func_desc* head_out);
 
 
-
-
-
+#endif
