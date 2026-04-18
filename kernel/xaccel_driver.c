@@ -29,11 +29,17 @@ static int __init xaccel_init(void)
 	
 	// Allocate Space for the Device
 	pr_info("Allocating space for device object\n");
-	gps_xdev = kzalloc(sizeof(struct xaccel_dev*), GFP_KERNEL);	
+	gps_xdev = kzalloc(sizeof(*gps_xdev), GFP_KERNEL);	
+	
+	if(!gps_xdev)
+	{
+	    pr_err("Failed to allocate memory");
+	    return -ENOMEM;
+	}
 	
 	// Initialize the Semaphore
 	pr_info("Initilizing the semaphore\n");
-	sema_init(gps_xdev->sem, MAX_LOCK_HOLDERS);
+	sema_init(&(gps_xdev->sem), MAX_LOCK_HOLDERS);
 	//sem_wait(gps_xdev->sem);
 	
 	// Allocating device numbers for new character device
@@ -52,7 +58,7 @@ static int __init xaccel_init(void)
 	
 	//FIXME: STUB CODE TO BE REMOVED
 	gps_xdev->num_functions = 1;
-	gps_xdev->funcs = kcalloc(1, sizeof(struct xaccel_function*), GFP_KERNEL);
+	gps_xdev->funcs = kcalloc(1, sizeof(gps_xdev->funcs[0]), GFP_KERNEL);
 	
 	//FIXME: STUB DUMMY DESCRIPTOR
 	struct xaccel_function* func =  &(gps_xdev->funcs[0]);	
@@ -101,6 +107,7 @@ static int __init xaccel_init(void)
 		return ret;
 	
 	}
+	pr_info("Returning Successfully...\n");	
 	return 0;
 }
 

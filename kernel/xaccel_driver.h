@@ -32,7 +32,7 @@ struct xaccel_dev
 	dev_t base_devt;		/* Base dev_t function for function devices */
 	struct class *class;		/* /sys/class/xaccel */
 
-	struct semaphore* sem;			/* Projects shared device-wide state */
+	struct semaphore sem;			/* Projects shared device-wide state */
 };
 
 static int __init xaccel_init(void);
