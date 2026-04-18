@@ -14,6 +14,7 @@
 #include <asm/uaccess.h>
 
 #include "../include/xaccel_desc.h"
+#include "../include/xaccel_macros.h"
 
 #define XACCEL_NAME "xaccel"
 #define XACCEL_CLASS_NAME "xaccel"
@@ -32,7 +33,7 @@ struct xaccel_dev
 	dev_t base_devt;		/* Base dev_t function for function devices */
 	struct class *class;		/* /sys/class/xaccel */
 
-	struct semaphore sem;			/* Projects shared device-wide state */
+	struct semaphore sem;		/* Projects shared device-wide state */
 };
 
 static int __init xaccel_init(void);

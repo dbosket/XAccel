@@ -2,6 +2,7 @@
 #include "../include/xaccel_macros.h"
 #include "../include/xaccel_desc.h"
 
+
 MODULE_LICENSE(LICENSE);
 MODULE_AUTHOR(AUTHOR);
 MODULE_DESCRIPTION(DESCRIPTION);
@@ -40,27 +41,34 @@ static int __init xaccel_init(void)
 	// Initialize the Semaphore
 	pr_info("Initilizing the semaphore\n");
 	sema_init(&(gps_xdev->sem), MAX_LOCK_HOLDERS);
-	//sem_wait(gps_xdev->sem);
+	down(&(gps_xdev->sem));
+	
+	//TODO: Add in Memory Mapping
+	//TODO: Parse Descriptor Header
+	//TODO: Parse Function Descriptor
+	//TODO: Build Runtime Function Objects
+
+	// FIXME: STUB CODE
+	gps_xdev->num_functions = 1;
+	gps_xdev->funcs = kcalloc(1, sizeof(gps_xdev->funcs[0]), GFP_KERNEL);
+
 	
 	// Allocating device numbers for new character device
 	pr_info("Allocating device numbers for character device\n");
-	ret = alloc_chrdev_region(&(gps_xdev->base_devt), FIRST_MINOR, NUM_DEV_REQUESTED, XACCEL_NAME);
+	ret = alloc_chrdev_region(&(gps_xdev->base_devt), FIRST_MINOR, gps_xdev->num_functions, XACCEL_NAME);
 	if (ret)
 	{
 		pr_err("xaccel: alloc_chrdev_region failed: %d\n", ret);
 		kfree(gps_xdev);
 		return ret;
 	}
-
+	
 	// Create the class for xaccel
 	pr_info("Creating class for xaccel devices\n");
 	gps_xdev->class = class_create(XACCEL_CLASS_NAME);
 	
-	//FIXME: STUB CODE TO BE REMOVED
-	gps_xdev->num_functions = 1;
-	gps_xdev->funcs = kcalloc(1, sizeof(gps_xdev->funcs[0]), GFP_KERNEL);
-	
-	//FIXME: STUB DUMMY DESCRIPTOR
+		
+	// FIXME: STUB CODE START
 	struct xaccel_function* func =  &(gps_xdev->funcs[0]);	
 	func->parent = gps_xdev;
 	
@@ -71,15 +79,19 @@ static int __init xaccel_init(void)
 
 	func->regs = gps_xdev->mmio_base;
 
-	//FIXME: STUB CDEV CODE
 	cdev_init(&(func->cdev), &(xaccel_fops));
 	func->cdev.owner = THIS_MODULE;
 	func->devt = MKDEV(MAJOR(gps_xdev->base_devt), 0);
 	cdev_add(&(func->cdev), func->devt, 1);
 	func->device = device_create(gps_xdev->class, NULL, func->devt, NULL, "xaccel0_func0");	
+	gps_xdev->funcs = func;	
+
+	/* FIXME: Actual code	
 	
-	/*	
+	// TODO: Allocate c_devs
 	// Initialize the character fevice struct and it's owner field
+	
+	
 	cdev_init(g_xaccel_dev.cdev, &xaccel_fops);
 	g_xaccel_dev.cdev.owner = THIS_MODULE;
 	// Inform the kernel about the 
@@ -98,29 +110,58 @@ static int __init xaccel_init(void)
 	if (IS_ERR(gps_xdev->dev))
 	{	
 		ret = PTR_ERR(gps_xdev->dev);
-		gps_xdev->dev = NULL;
 		pr_err("xaccel: device_create failed: %d\n", ret);
-		class_destroy(gps_xdev->class);
-		gps_xdev->class = NULL;
-		//cdev_del(gps_xdev.cdev); // Remove char dev from system
-		//unregister_chrdev_region(g_xaccel_dev.devt, 1);
+		struct xaccel_function* temp_func;
+		if (gps_xdev)
+		{
+		    for (int i=0; i<gps_xdev->num_functions; i++)
+		    {
+		        temp_func = &(gps_xdev->funcs[i]);
+	    	        cdev_del(&(temp_func->cdev));
+		        kfree(&(gps_xdev->funcs[i])); 	
+		    }	
+		}
+		if (gps_xdev->class) 
+		{
+		    class_destroy(gps_xdev->class); // Destroy Class
+		    gps_xdev->class = NULL;
+		}
+		unregister_chrdev_region(gps_xdev->base_devt, 1);
+		up(&(gps_xdev->sem));
+		kfree(gps_xdev);
+		gps_xdev = NULL;
 		return ret;
-	
 	}
-	pr_info("Returning Successfully...\n");	
+
+	up(&(gps_xdev->sem));
+	pr_info("XACCEL_INIT() Returning Successfully...\n");	
 	return 0;
 }
 
 
 static void __exit xaccel_exit(void)
 {
-	// Make sure undoing anything that we've done up into this point
-	// Make sure we're checking things before releasing resources
+	if (!gps_xdev) return;
 	
-	/* Make sure we're relaseing device numbers when we're done
-	 * count is something that would be passed in by descriptor-->how much do we need?
-	 * unregister_chrdev_region(dev_t, firstminor, count, *name);
-	 */
+	// Releasing function objs and cdevs
+	if (gps_xdev->funcs)
+	{
+	    struct xaccel_function* temp_func;
+	    for (int i=0; i<gps_xdev->num_functions; i++)
+	    {
+	        temp_func = &(gps_xdev->funcs[i]);
+	    	cdev_del(&(temp_func->cdev));
+		kfree(&(gps_xdev->funcs[i])); 	
+	    }
+	kfree(gps_xdev->funcs); 	
+	gps_xdev->funcs = NULL;
+	}
+	if (gps_xdev->class) 
+	    class_destroy(gps_xdev->class); // Destroy Class
+	unregister_chrdev_region(gps_xdev->base_devt, gps_xdev->num_functions); //Release Device Number Region
+	kfree(gps_xdev);
+	gps_xdev = NULL;
+	pr_info("XACCEL_EXIT() Returning...\n");
 	return;
 }
 

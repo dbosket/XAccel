@@ -27,7 +27,7 @@ int xaccel_core_create_function_devices(struct xaccel_dev *xdev)
 
     xfunc->parent = xaccel_dev;
     xfunc->
-*/
+    */
     return 0;
 }
 

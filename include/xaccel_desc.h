@@ -11,6 +11,7 @@
 #include "xaccel_macros.h"
 #include <linux/cdev.h>
 #include <linux/errno.h>
+#include <linux/mutex.h>
 
 struct xaccel_desc_header 
 {
@@ -50,6 +51,7 @@ struct xaccel_function
 	struct cdev cdev;
 	dev_t devt;
 	struct device *device;
+	struct mutex lock;
 } __packed;
 
 // Is this Descriptor Header Valid?
