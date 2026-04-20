@@ -40,6 +40,18 @@
 #endif
 
 
+struct xaccel_function
+{
+	struct xaccel_dev *parent;
+	struct xaccel_func_desc desc;
+	void __iomem *regs;
+	struct cdev cdev;
+	dev_t devt;
+	struct device *device;
+	struct mutex lock;
+	__u16 open_count;
+}; 
+
 struct xaccel_dev
 {
         struct device *dev;             /* Parent Linux Device */

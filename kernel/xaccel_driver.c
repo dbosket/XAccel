@@ -247,18 +247,35 @@ static long int xaccel_ioctl( struct file* fp, unsigned int cmd, unsigned long i
 // File Operations
 static int xaccel_open(struct inode* node, struct file* fp)
 {
-	/*
-	struct xaccel_dev *dev;
+	struct xaccel_function *func;
+	func = container_of(node->i_cdev, struct xaccel_function, cdev);
 
-	dev = container_of(node->i_cdev, struct xaccel_dev, cdev);
-	fp->private_data = dev;
-	*/
+	if (!func || !func->parent)
+	    return -ENODEV;
+
+	mutex_lock(&func->lock);
+	(func->open_count)++;
+	mutex_unlock(&func->lock);
+	fp->private_data = func;
+
 	pr_info("xaccel: device opened\n");
 	return 0;
 }
 
 static int xaccel_close(struct inode* node, struct file* fp)
 {
+	struct xaccel_function *func;
+	func = container_of(node->i_cdev, struct xaccel_function, cdev);
+
+	if (!func || !func->parent)
+	    return -ENODEV;
+
+	mutex_lock(&func->lock);
+	if (func->open_count)
+	    (func->open_count)--;
+	mutex_unlock(&func->lock);
+	fp->private_data = NULL;	
+
 	pr_info("xaccel: device closed\n");
 	return 0;
 }

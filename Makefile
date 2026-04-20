@@ -20,6 +20,10 @@ ccflags-y += -I$(src)/kernel
 KDIR ?= /lib/modules/$(shell uname -r)/build
 
 
+# Smoke test
+SMOKE_SRC := tests/smoketest.c
+SMOKE_BIN := tests/smoketest
+
 # Current repo root
 PWD := $(shell pwd)
 
@@ -35,3 +39,5 @@ modules_install:
 	$(MAKE) -C $(KDIR) M=$(PWD) modules_install
 
 
+smoke:
+	gcc -Wall -I$(PWD)/include -o $(SMOKE_BIN) $(SMOKE_SRC)

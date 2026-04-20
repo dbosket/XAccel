@@ -7,7 +7,12 @@
 #ifndef XACCEL_UAPI_H
 #define XACCEL_UAPI_H
 
-#include "linux/ioctl.h"
+#ifdef __KERNEL__ 
+    #include <linux/ioctl.h>
+#else
+    #include <sys/ioctl.h>
+#endif
+
 #include "../include/xaccel_desc.h"
 
 #define XACCEL_IOC_MAGIC        'x'
@@ -17,20 +22,20 @@
 
 struct xaccel_reg_io
 {
-    __u32 offset; 	// offset within this functions MMIO window
-    __u32 value;        // value to be read back or value to write to 
+    uint32_t offset; 	// offset within this functions MMIO window
+    uint32_t value;        // value to be read back or value to write to 
 };
 
 struct xaccel_info
 {
-    __u16 func_id;
-    __u16 func_type;
-    __u16 func_version;
-    __u16 irq_index;
+    uint16_t func_id;
+    uint16_t func_type;
+    uint16_t func_version;
+    uint16_t irq_index;
 
-    __u32 mmio_size;
-    __u32 caps;
-    __u32 reg_layout_ver;
+    uint32_t mmio_size;
+    uint32_t caps;
+    uint32_t reg_layout_ver;
 };
 
 #endif
