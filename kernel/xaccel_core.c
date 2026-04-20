@@ -9,6 +9,19 @@ int xaccel_core_init(struct device *dev, void __iomem *base, size_t mmio_size)
 
 void xaccel_core_cleanup(struct xaccel_dev *xdev)
 {
+    if (!xdev)
+    {
+	pr_info("ERROR: Invalid Pointer");
+        return;
+    }
+    
+    
+    
+
+    
+
+
+    
     return;
 }
 

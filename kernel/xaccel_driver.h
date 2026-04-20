@@ -15,26 +15,11 @@
 
 #include "../include/xaccel_desc.h"
 #include "../include/xaccel_macros.h"
+#include "./xaccel_core.h"
 
 #define XACCEL_NAME "xaccel"
 #define XACCEL_CLASS_NAME "xaccel"
 
-struct xaccel_dev 
-{
-	struct device *dev;		/* Parent Linux Device */
-	void __iomem *mmio_base;	/* Base mapped MMIO region for accelerator */
-	size_t mmio_size;		/* Total mapped MMIO region size */
-
-	struct xaccel_desc_header hdr;  /* Parsed top-level descriptor header */
-
-	u16 num_functions;		/* Number of parsed/discovered function */
-	struct xaccel_function *funcs;  /* Array of runtime function objects */
-	
-	dev_t base_devt;		/* Base dev_t function for function devices */
-	struct class *class;		/* /sys/class/xaccel */
-
-	struct semaphore sem;		/* Projects shared device-wide state */
-};
 
 static int __init xaccel_init(void);
 
