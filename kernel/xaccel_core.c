@@ -15,13 +15,6 @@ void xaccel_core_cleanup(struct xaccel_dev *xdev)
         return;
     }
     
-    
-    
-
-    
-
-
-    
     return;
 }
 

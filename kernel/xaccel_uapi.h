@@ -22,7 +22,7 @@
 
 struct xaccel_reg_io
 {
-    uint32_t offset; 	// offset within this functions MMIO window
+    uint32_t offset; 	   // offset within this functions MMIO window
     uint32_t value;        // value to be read back or value to write to 
 };
 

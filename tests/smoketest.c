@@ -5,9 +5,47 @@
 #include <stdlib.h>
 #include "../kernel/xaccel_uapi.h"
 
+int xaccel_ioc_get_info(int fd);
+int xaccel_ioc_read(int fd, struct xaccel_reg_io* dest_buf);
+int xaccel_ioc_write(int fd, void* src_buf);
+
+
+int xaccel_ioc_get_info(int fd)
+{
+       struct xaccel_info f_info = {-1, -1, -1, -1, -1, -1, -1};
+
+       if (ioctl(fd, XACCEL_IOC_GET_INFO, &f_info))
+       {
+	       perror("ERROR: ioctl(get_info) failed...\n");
+	       return EXIT_FAILURE;
+       }
+
+       // Printing the info recived
+       fprintf(stdout, "FUNC_ID            =%d\n", f_info.func_id);
+       fprintf(stdout, "FUNC_TYPE          =%d\n", f_info.func_type);
+       fprintf(stdout, "FUNC_VERSION       =%d\n", f_info.func_version);
+       fprintf(stdout, "IRQ_INDEX          =%d\n", f_info.irq_index);
+       fprintf(stdout, "MMIO_SIZE          =%d\n", f_info.mmio_size);
+       fprintf(stdout, "CAPABILITIES       =%d\n", f_info.caps);
+       fprintf(stdout, "REG_LAYOUT_VERSION =%d\n", f_info.reg_layout_ver);
+
+       return EXIT_SUCCESS;
+
+}
+
+int xaccel_ioc_read(int fd, struct xaccel_reg_io *req)
+{
+    if (ioctl(fd, XACCEL_IOC_READ_REG, req))
+    {
+        perror("ERROR: ioctl(read) failed...\n");
+	return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+}
+
+
 int main (int argc, char** argv)
 {
-    int ret_val;
     int fd = open("/dev/xaccel0_func0", O_RDWR);
     if (fd < 0)
     {
@@ -21,16 +59,30 @@ int main (int argc, char** argv)
     };
 
     fprintf(stdout, "Running ioctl()...\n");
-    ret_val = ioctl(fd, XACCEL_IOC_READ_REG, &req);
 
-    if (!ret_val)
+    // Support command line args
+    if (argc)
     {
-        fprintf(stderr, "ERROR: ioctl() failed...\n");
-	perror("ioctl");
-	return EXIT_FAILURE;
-    }
-    printf("val = 0x%x\n", req.value);
+    
+        switch (atoi(argv[0])){
+	    // Get call get info command 
+	    case 0:
+		xaccel_ioc_get_info(fd);
+		break;
+	    // Call read command
+            case 1:
+		if (!xaccel_ioc_read(fd, &req))
+		    printf("val = 0x%x\n", req.value);
+		break;
+	    // Call write command
+            case 2:
+		break;
+	    default:
+		xaccel_ioc_get_info(fd);
+		break;
+        }
     close(fd);
 
     return 0;
+    }
 }

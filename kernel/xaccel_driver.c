@@ -3,6 +3,8 @@
 #include "../include/xaccel_macros.h"
 #include "../include/xaccel_desc.h"
 
+#define DEBUG 1
+
 MODULE_LICENSE(LICENSE);
 MODULE_AUTHOR(AUTHOR);
 MODULE_DESCRIPTION(DESCRIPTION);
@@ -73,10 +75,11 @@ static int __init xaccel_init(void)
 	struct xaccel_function* func =  &(gps_xdev->funcs[0]);	
 	func->parent = gps_xdev;
 	
-	func->desc.func_id = 0;
+	func->desc.func_id = 7;
 	func->desc.mmio_offset = 0;
 	func->desc.mmio_size = 0x100;
 	func->desc.caps = XACCEL_CAP_MMIO_RW;
+
 
 	func->regs = gps_xdev->mmio_base;
 
@@ -118,10 +121,13 @@ static int __init xaccel_init(void)
 		    for (int i=0; i<gps_xdev->num_functions; i++)
 		    {
 		        temp_func = &(gps_xdev->funcs[i]);
+			device_destroy(gps_xdev->class, temp_func->devt);
 	    	        cdev_del(&(temp_func->cdev));
-		        kfree(&(gps_xdev->funcs[i])); 	
 		    }	
 		}
+		kfree(gps_xdev->funcs); 	
+		gps_xdev->funcs = NULL;
+
 		if (gps_xdev->class) 
 		{
 		    class_destroy(gps_xdev->class); // Destroy Class
@@ -154,6 +160,7 @@ static void __exit xaccel_exit(void)
 	    {
 		
 	        temp_func = &(gps_xdev->funcs[i]);
+		device_destroy(gps_xdev->class, temp_func->devt);
 		pr_info("Deleting char device for func[%d]\n", i);
 	    	cdev_del(&(temp_func->cdev));
 	    }
@@ -196,6 +203,11 @@ static long int xaccel_ioctl( struct file* fp, unsigned int cmd, unsigned long i
 	void __user *argp = (void __user *)arg;
 	struct xaccel_reg_io req;
 
+#ifdef DEBUG
+		    pr_info("Function's id is %d\n", func->desc.func_id);
+		    pr_info("Function's type is %d\n", func->desc.func_type);
+#endif
+
 	switch (cmd){
 		case XACCEL_IOC_GET_INFO:
 
@@ -207,6 +219,9 @@ static long int xaccel_ioctl( struct file* fp, unsigned int cmd, unsigned long i
 		    f_info.mmio_size      = func->desc.mmio_size;
 		    f_info.caps           = func->desc.caps;
 		    f_info.reg_layout_ver = func->desc.reg_layout_ver;
+
+		    if (copy_to_user(argp, &f_info, sizeof(f_info)))
+		        return -EFAULT;
 		    return 0;
 
 		case XACCEL_IOC_READ_REG:
