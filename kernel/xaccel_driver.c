@@ -3,7 +3,10 @@
 #include "../include/xaccel_macros.h"
 #include "../include/xaccel_desc.h"
 
+#include "xaccel_debug_sw.h"
+
 #define DEBUG 1
+#define NO_HW 1
 
 MODULE_LICENSE(LICENSE);
 MODULE_AUTHOR(AUTHOR);
@@ -70,6 +73,27 @@ static int __init xaccel_init(void)
 	pr_info("Creating class for xaccel devices\n");
 	gps_xdev->class = class_create(XACCEL_CLASS_NAME);
 	
+#ifdef NO_HW
+
+	void* mmio_buf;
+	
+	pr_info("Populating RAM with test object to emulate MMIO\n");
+	if (gen_xaccel_test_obj(ONE_FUNCTION, mmio_buf));
+
+	{
+	    pr_info("ERROR: Generating test scenario failed\n");
+	    return -EFAULT;
+	}
+
+	if (build_descriptor_header(mmio_buf, head_out);
+
+
+
+
+
+
+
+#else	
 		
 	// FIXME: STUB CODE START
 	struct xaccel_function* func =  &(gps_xdev->funcs[0]);	
@@ -89,7 +113,7 @@ static int __init xaccel_init(void)
 	cdev_add(&(func->cdev), func->devt, 1);
 	func->device = device_create(gps_xdev->class, NULL, func->devt, NULL, "xaccel0_func0");	
 	gps_xdev->funcs = func;	
-
+#endif
 	/* FIXME: Actual code	
 	
 	// TODO: Allocate c_devs
@@ -174,6 +198,17 @@ static void __exit xaccel_exit(void)
 	gps_xdev = NULL;
 	pr_info("XACCEL_EXIT() Returning Successfully...\n");
 	return;
+}
+
+
+static int xaccel_probe(struct platform_device *pdev){
+	//TODO: Implement Me
+	return 0;
+}
+
+static int xaccel_remove(struct platform_device *pdev){
+	//TODO: Impement Me
+	return 0;
 }
 
 

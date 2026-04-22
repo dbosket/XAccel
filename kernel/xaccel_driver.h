@@ -11,6 +11,7 @@
 #include <linux/slab.h>
 #include <linux/errno.h>
 #include <linux/semaphore.h>
+#include <linux/platform_device.h>
 #include <asm/uaccess.h>
 
 #include "../include/xaccel_desc.h"
@@ -25,12 +26,17 @@ static int __init xaccel_init(void);
 
 static void __exit xaccel_exit(void);
 
-static ssize_t xaccel_read( struct file* fp, char __user* buf, size_t cnt, loff_t* ppos);
+static int xaccel_probe(struct platform_device *pdev);
 
-static ssize_t xaccel_write( struct file* fp, const char __user* buf, size_t cnt, loff_t* ppos);
+static int xaccel_remove(struct platform_device *pdev);
 
 static int xaccel_open(struct inode* node, struct file* fp);
 
 static int xaccel_close(struct inode* node, struct file* fp);
 
+static ssize_t xaccel_read( struct file* fp, char __user* buf, size_t cnt, loff_t* ppos);
+
+static ssize_t xaccel_write( struct file* fp, const char __user* buf, size_t cnt, loff_t* ppos);
+
 static long int xaccel_ioctl(struct file* fp, unsigned int cmd, unsigned long int arg);
+

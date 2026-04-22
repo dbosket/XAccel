@@ -2,11 +2,6 @@
 
 
 
-int xaccel_core_init(struct device *dev, void __iomem *base, size_t mmio_size)
-{
-    return 0;
-}
-
 void xaccel_core_cleanup(struct xaccel_dev *xdev)
 {
     if (!xdev)
@@ -57,7 +52,7 @@ int build_descriptor_header(void* source_addr, struct xaccel_desc_header* head_o
 {
   if (source_addr)
   {
-    head_out = kmalloc(sizeof(struct xaccel_desc_header), GFP_KERNEL);
+    head_out = kzalloc(sizeof(struct xaccel_desc_header), GFP_KERNEL);
     if (!head_out)
     {
       pr_err("Failed to Allocate Memory\n");

@@ -70,9 +70,6 @@ struct xaccel_dev
 };
 
 
-// Initialize the the xaccelerator object
-int xaccel_core_init(struct device *dev, void __iomem *base, size_t mmio_size);
-
 // Clean up the accelerator object 
 void xaccel_core_cleanup(struct xaccel_dev *xdev);
 

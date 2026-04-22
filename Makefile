@@ -1,13 +1,12 @@
 
-
-
 obj-m += xaccel.o
 
 
 
 # Objects that make up xaccel.ko
 xaccel-y := kernel/xaccel_driver.o \
-	    kernel/xaccel_core.o   
+	kernel/xaccel_core.o \
+	kernel/xaccel_debug_sw.o
 
 
 # Shared Project Headers
@@ -41,3 +40,4 @@ modules_install:
 
 smoke:
 	gcc -Wall -I$(PWD)/include -o $(SMOKE_BIN) $(SMOKE_SRC)
+
