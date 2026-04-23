@@ -14,6 +14,9 @@
 #define XACCEL_DESC_VER 1U
 #define XACCEL_IRQ_NONE 0xFFFFU
 
+#define XACCEL_NAME "xaccel"
+#define XACCEL_CLASS_NAME "xaccel" 
+
 #define NO_HW 1
 
 //Global Descriptor Flags

@@ -26,15 +26,14 @@ struct file_operations xaccel_fops = {
 
 static int __init xaccel_init(void)
 {
-	int ret;
-	void* mmio_buf;
+	void *mmio_buf = NULL;
 	pr_info("xaccel: init\n");
 
 #ifdef NO_HW
 	
-
+	enum test_case test= ONE_FUNCTION;
 	pr_info("Populating RAM with test object to emulate MMIO\n");
-	if (gen_xaccel_test_obj(ONE_FUNCTION, mmio_buf));
+	if (gen_xaccel_test_obj(test, &mmio_buf))
 	{
 	    pr_info("ERROR: Generating test scenario failed\n");
 	    return -EFAULT;
@@ -46,7 +45,11 @@ static int __init xaccel_init(void)
 
 #endif
 
-	xaccel_create_instance(base_addr);
+	if (xaccel_create_instance(&mmio_buf, gps_xdev, xaccel_fops))
+	{
+		pr_info("ERROR: Failed to create test scenario instance\n");
+		return -1;
+	}	
 	/*	
 	// Allocate Space for the Device
 	pr_info("Allocating space for device object\n");

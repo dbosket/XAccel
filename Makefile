@@ -7,7 +7,8 @@ obj-m += xaccel.o
 
 # Objects that make up xaccel.ko
 xaccel-y := kernel/xaccel_driver.o \
-	    kernel/xaccel_core.o   
+	kernel/xaccel_core.o \
+	kernel/xaccel_debug_sw.o 
 
 
 # Shared Project Headers

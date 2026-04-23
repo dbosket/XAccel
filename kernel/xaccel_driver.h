@@ -4,7 +4,6 @@
 #include <linux/errno.h>
 #include <linux/moduleparam.h>
 #include <linux/types.h>
-#include <linux/fs.h>
 #include <linux/cdev.h>
 #include <linux/kernel.h>
 #include <linux/device.h>
@@ -17,9 +16,6 @@
 #include "../include/xaccel_desc.h"
 #include "../include/xaccel_macros.h"
 #include "./xaccel_core.h"
-
-#define XACCEL_NAME "xaccel"
-#define XACCEL_CLASS_NAME "xaccel"
 
 
 static int __init xaccel_init(void);

@@ -7,17 +7,6 @@
 #include "xaccel_core.h"
 #include "../include/xaccel_desc.h"
 
-#define VALID_CASE_1          1
-#define VALID_CASE_2          2
-#define VALID_CASE_3          3
-
-#define BAD_MAGIC_CASE        4
-#define BAD_VERSION_CASE      5
-#define BAD_TOTAL_SIZE_CASE   6
-#define INVALID_CASE_4        7
-#define INVALID_CASE_5        8
-#define INCALID_CASE_6        9
-
 enum test_case
 {
 	ONE_FUNCTION,
@@ -36,7 +25,7 @@ enum test_case
  * Based on the test case specified, it will return a buffer to the start of a "MMIO MAPPED" region
  * Which will allows rapid testing of descriptor parsing and processing efforts
  */
-int gen_xaccel_test_obj(enum test_case test, void* buf_out);
+int gen_xaccel_test_obj(enum test_case test, void** buf_out);
 
 
 /* 

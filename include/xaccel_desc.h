@@ -84,4 +84,45 @@ static inline int xaccel_funct_has_irq(const struct xaccel_func_desc *head)
 	return (head->irq_index != XACCEL_IRQ_NONE);
 }
 
+// Write 32 bytes to either hardware or kernel memory
+static inline void xaccel_write32(void* base, __u32 offset, __u32 val)
+{
+	#ifdef NO_HW
+	*(__u32 *)((__u8 *)base + offset) = val;
+	#else
+	iowrite32(val, base + offset);
+	#endif
+}
+
+// Write 16 bytes to either hardware or kernel memory
+static inline void xaccel_write16(void* base, __u16 offset, __u16 val)
+{
+	#ifdef NO_HW
+	*(__u16 *)((__u8 *)base + offset) = val;
+	#else
+	iowrite16(val, base + offset);
+	#endif
+}
+
+// Read 32 bytes from hardware or kernel memory
+static inline __u32 xaccel_read32(void* base, __u32 offset)
+{
+	#ifdef NO_HW
+	return *(__u32 *)((__u8 *)base + offset);
+	#else
+	return ioread32((void __iomem *)base + offset);	
+	#endif
+}
+
+// Read 16 bytes from hardware or kernel memory
+static inline __u16 xaccel_read16(void* base, __u16 offset)
+{
+	#ifdef NO_HW
+	return *(__u16 *)((__u8 *)base + offset);
+	#else
+	return ioread16((void __iomem *)base + offset);	
+	#endif
+}
+
+
 #endif
