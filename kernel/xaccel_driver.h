@@ -13,6 +13,7 @@
 #include <linux/semaphore.h>
 #include <asm/uaccess.h>
 
+#include "xaccel_debug_sw.h"
 #include "../include/xaccel_desc.h"
 #include "../include/xaccel_macros.h"
 #include "./xaccel_core.h"

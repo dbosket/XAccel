@@ -14,6 +14,7 @@
 #define XACCEL_DESC_VER 1U
 #define XACCEL_IRQ_NONE 0xFFFFU
 
+#define NO_HW 1
 
 //Global Descriptor Flags
 #define XACCEL_DESC_F_HAS_CHECKSUM    BIT(0)

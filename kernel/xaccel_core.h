@@ -13,6 +13,9 @@
 
 #include <linux/kernel.h>
 #include <linux/io.h>
+#include <linux/types.h>
+#include <linux/mutex.h>
+
 #include "../include/xaccel_desc.h"
 #include "../include/xaccel_macros.h"
 
@@ -70,14 +73,26 @@ struct xaccel_dev
 };
 
 
-// Initialize the the xaccelerator object
-int xaccel_core_init(struct device *dev, void __iomem *base, size_t mmio_size);
+// Create instance of struct xaccel_device
+int xaccel_create_instance(void* mmio_base);
 
-// Clean up the accelerator object 
-void xaccel_core_cleanup(struct xaccel_dev *xdev);
+
+// Destroy instance of struct xaccel_device
+int xaccel_destroy_instance(struct xaccel_dev* xdev);
+
+
+// Clean up any memory allocated by xaccel_dev 
+void xaccel_cleanup(struct xaccel_dev *xdev);
+
 
 // Parse the descriptor recieved
-int xaccel_core_parse_descriptor(struct xaccel_dev *xdev);
+int xaccel_build_descriptor_header(void* source_addr, struct xaccel_desc_header* head_out);
+
+// Reading a function descriptor from mmap address specified at source addr, and saves to header 
+int xaccel_build_function_descriptor(void* source_addr, struct xaccel_func_desc* desc_out)
+
+// Function to read in raw bytes, return 0 if positive or negative number otherwise
+int xaccel_check_descriptor_header(struct xaccel_desc_header* header);
 
 // Create device for a particular function
 int xaccel_core_create_function_devices(struct xaccel_dev *xdev);
@@ -86,15 +101,45 @@ int xaccel_core_create_function_devices(struct xaccel_dev *xdev);
 int xaccel_core_destroy_function_device(struct xaccel_dev *xdev);
 
 
-// Function to read in raw bytes, return 0 if positive or negative number otherwise
-int check_descriptor_header(struct xaccel_desc_header* header);
+// Write 32 bytes to either hardware or kernel memory
+static inline void xaccel_write32(void* base, __u32 offset, __u32 val)
+{
+	#ifdef NO_HW
+	*(__u32 *)((__u8 *)base + offset) = val;
+	#else
+	iowrite32(val, base + offset);
+	#endif
+}
 
-// Read in from a MM address of x bytes to build a struct descriptor header
-int build_descriptor_header(void* source_addr, struct xaccel_desc_header* head_out);
+// Write 16 bytes to either hardware or kernel memory
+static inline void xaccel_write16(void* base, __u16 offset, __u16 val)
+{
+	#ifdef NO_HW
+	*(__u16 *)((__u8 *)base + offset) = val;
+	#else
+	iowrite16(val, base + offset);
+	#endif
+}
 
+// Read 32 bytes from hardware or kernel memory
+static inline void xaccel_read32(void* base, __u32 offset)
+{
+	#ifdef NO_HW
+	return *(__u32 *)((__u8 *)base + offset);
+	#else
+	return ioread32((void __iomem *)base + offset);	
+	#endif
+}
 
-// Read in from a MM address of of x bytes based on size specified in header
-int build_function_header(void* source_addr, struct xaccel_func_desc* head_out);
+// Read 16 bytes from hardware or kernel memory
+static inline void xaccel_read16(void* base, __u16 offset)
+{
+	#ifdef NO_HW
+	return *(__u16 *)((__u8 *)base + offset);
+	#else
+	return ioread16((void __iomem *)base + offset);	
+	#endif
+}
 
 
 #endif

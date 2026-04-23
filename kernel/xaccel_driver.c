@@ -26,10 +26,28 @@ struct file_operations xaccel_fops = {
 
 static int __init xaccel_init(void)
 {
-
 	int ret;
+	void* mmio_buf;
 	pr_info("xaccel: init\n");
+
+#ifdef NO_HW
 	
+
+	pr_info("Populating RAM with test object to emulate MMIO\n");
+	if (gen_xaccel_test_obj(ONE_FUNCTION, mmio_buf));
+	{
+	    pr_info("ERROR: Generating test scenario failed\n");
+	    return -EFAULT;
+	}
+#else
+
+
+
+
+#endif
+
+	xaccel_create_instance(base_addr);
+	/*	
 	// Allocate Space for the Device
 	pr_info("Allocating space for device object\n");
 	gps_xdev = kzalloc(sizeof(*gps_xdev), GFP_KERNEL);	
@@ -90,10 +108,6 @@ static int __init xaccel_init(void)
 	func->device = device_create(gps_xdev->class, NULL, func->devt, NULL, "xaccel0_func0");	
 	gps_xdev->funcs = func;	
 
-	/* FIXME: Actual code	
-	
-	// TODO: Allocate c_devs
-	// Initialize the character fevice struct and it's owner field
 	
 	
 	cdev_init(g_xaccel_dev.cdev, &xaccel_fops);
@@ -107,7 +121,6 @@ static int __init xaccel_init(void)
 		unregister_chrdev_region(g_xaccel_dev.base_devt, 1);
 		return ret;
 	}
-	*/
 
 
 	// Error Handling Routine
@@ -141,6 +154,7 @@ static int __init xaccel_init(void)
 	}
 
 	up(&(gps_xdev->sem));
+	*/
 	pr_info("XACCEL_INIT() Returning Successfully...\n");	
 	return 0;
 }
@@ -148,7 +162,10 @@ static int __init xaccel_init(void)
 
 static void __exit xaccel_exit(void)
 {
+
 	pr_info("xaccel exit() starting...");
+	xaccel_cleanup(gps_xdev);
+	/*
 	if (!gps_xdev) return;
 	
 	// Releasing function objs and cdevs
@@ -172,6 +189,7 @@ static void __exit xaccel_exit(void)
 	unregister_chrdev_region(gps_xdev->base_devt, gps_xdev->num_functions); //Release Device Number Region
 	kfree(gps_xdev);
 	gps_xdev = NULL;
+	*/
 	pr_info("XACCEL_EXIT() Returning Successfully...\n");
 	return;
 }
