@@ -94,7 +94,7 @@ void xaccel_cleanup(struct xaccel_dev *xdev);
 int xaccel_build_header(void* source_addr, struct xaccel_desc_header* head_out);
 
 // Reading a function descriptor from mmap address specified at source addr, and saves to header 
-int xaccel_build_function_descriptor(void* source_addr, struct xaccel_func_desc* desc_out);
+int xaccel_build_function_descriptor(void* source_addr, struct xaccel_dev *xdev, struct xaccel_func_desc* desc_out);
 
 // Function to read in raw bytes, return 0 if positive or negative number otherwise
 int xaccel_check_header(struct xaccel_desc_header* header);
@@ -106,6 +106,14 @@ int xaccel_create_function_device(struct xaccel_dev *xdev, struct xaccel_func_de
 // Destory the devices created in the function
 int xaccel_destroy_function_device(struct xaccel_dev *xdev);
 
+// Verifying function's registers are valid
+int xaccel_verify_func_regs(struct xaccel_dev *xdev, struct xaccel_func_desc *func_desc);
+
+void xaccel_print_xaccel_instance(struct xaccel_dev* xdev);
+
+void xaccel_print_desc_header(struct xaccel_desc_header* head);
+
+void xaccel_print_func_desc(struct xaccel_func_desc desc);
 
 
 #endif

@@ -21,6 +21,30 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out)
 	    	    // TEST CASE 1: One function, no irq, no, extension, properly formatted	
 	    case ONE_FUNCTION:
 	        
+		struct xaccel_desc_header head = {
+			.magic         = 0xaccel,
+			.version       = 1,
+			.header_size   = sizeof(struct xaccel_desc_header),
+			.total_size    = sizeof(struct xaccel_desc_header) + sizeof(struct xaccel_func_desc),
+			.num_functions = 1,
+			.flags         = 0,
+			.checksum      = 0x1111111,
+			.device_id     = 0x17171717
+		};
+
+		struct xaccel_func_desc fdesc = {
+			.func_id        = 0,
+			.func_type      = 7,
+			.func_version   = 1,
+			.irq_index      = 3,
+			.mmio_offset    = sizeof(struct xaccel_desc_header),
+			.mmio_size      = sizeof(struct xaccel_func_desc),
+			.caps           = XACCEL_CAP_MMIO_RW,
+			.reg_layout_ver = 1,
+			.ext_offset     = 0,
+			.ext_size       = 0
+		};
+
 		__u32 total_size = desc_header_sz + func_desc_sz;
 		pr_info("Allocating space in emulated mmap for descriptor + functions\n...");
                 *buf_out = kzalloc(total_size, GFP_KERNEL);
@@ -30,14 +54,17 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out)
 			return -ENOMEM;
 		}
 		// Generate descriptor header
-		if( gen_xaccel_desc_header(*buf_out, 1, total_size, 1, 0x0, 1234, 7777))
+		if( gen_xaccel_desc_header(*buf_out, head.version, head.total_size, 
+					head.num_functions, head.flags, head.checksum, head.device_id))
 		{
 		    pr_err("ERROR: Failed to crate descriptor header\n");
 		    return -1;
 		}
 		// Generate function header
 		void* func_start_region = (__u8*)(*buf_out) + sizeof(struct xaccel_desc_header);
-		if ( gen_xaccel_function_desc(func_start_region, 1, 0, 0, 0, 0x0, 0x100, XACCEL_CAP_MMIO_RW, 0x0, 0x0))
+		if ( gen_xaccel_function_desc(func_start_region, fdesc.func_id, fdesc.func_type,
+					fdesc.func_version, fdesc.irq_index, fdesc.mmio_offset,
+					fdesc.mmio_size, fdesc.caps, fdesc.ext_offset, fdesc.ext_size))
 		{
 		    pr_err("ERROR: Failed to create function descriptor\n");
 		    return -1;

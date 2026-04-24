@@ -58,6 +58,9 @@ static int __init xaccel_init(void)
 		pr_info("ERROR: Failed to create test scenario instance\n");
 		return -1;
 	}	
+	
+	xaccel_print_xaccel_instance(gps_xdev);
+
 	/*	
 	// Allocate Space for the Device
 	pr_info("Allocating space for device object\n");
