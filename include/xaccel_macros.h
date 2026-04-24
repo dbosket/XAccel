@@ -18,6 +18,7 @@
 #define XACCEL_CLASS_NAME "xaccel" 
 
 #define NO_HW 1
+#define DEBUG 1
 
 //Global Descriptor Flags
 #define XACCEL_DESC_F_HAS_CHECKSUM    BIT(0)

@@ -90,17 +90,17 @@ static inline void xaccel_write32(void* base, __u32 offset, __u32 val)
 	#ifdef NO_HW
 	*(__u32 *)((__u8 *)base + offset) = val;
 	#else
-	iowrite32(val, base + offset);
+	iowrite32(val, (__u8 __iomem *)base + offset);
 	#endif
 }
 
 // Write 16 bytes to either hardware or kernel memory
-static inline void xaccel_write16(void* base, __u16 offset, __u16 val)
+static inline void xaccel_write16(void* base, __u32 offset, __u32 val)
 {
 	#ifdef NO_HW
 	*(__u16 *)((__u8 *)base + offset) = val;
 	#else
-	iowrite16(val, base + offset);
+	iowrite16(val,(__u8 __iomem *)base + offset);
 	#endif
 }
 
@@ -110,17 +110,17 @@ static inline __u32 xaccel_read32(void* base, __u32 offset)
 	#ifdef NO_HW
 	return *(__u32 *)((__u8 *)base + offset);
 	#else
-	return ioread32((void __iomem *)base + offset);	
+	return ioread32((__u8 __iomem *)base + offset);	
 	#endif
 }
 
 // Read 16 bytes from hardware or kernel memory
-static inline __u16 xaccel_read16(void* base, __u16 offset)
+static inline __u16 xaccel_read16(void* base, __u32 offset)
 {
 	#ifdef NO_HW
 	return *(__u16 *)((__u8 *)base + offset);
 	#else
-	return ioread16((void __iomem *)base + offset);	
+	return ioread16((__u8 __iomem *)base + offset);	
 	#endif
 }
 

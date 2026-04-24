@@ -22,6 +22,7 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out)
 	    case ONE_FUNCTION:
 	        
 		__u32 total_size = desc_header_sz + func_desc_sz;
+		pr_info("Allocating space in emulated mmap for descriptor + functions\n...");
                 *buf_out = kzalloc(total_size, GFP_KERNEL);
 
 		if (!(*buf_out)){
@@ -35,7 +36,8 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out)
 		    return -1;
 		}
 		// Generate function header
-		if ( gen_xaccel_function_desc(*buf_out, 1, 0, 0, 0, 0x0, 0x100, XACCEL_CAP_MMIO_RW, 0x0, 0x0))
+		void* func_start_region = (__u8*)(*buf_out) + sizeof(struct xaccel_desc_header);
+		if ( gen_xaccel_function_desc(func_start_region, 1, 0, 0, 0, 0x0, 0x100, XACCEL_CAP_MMIO_RW, 0x0, 0x0))
 		{
 		    pr_err("ERROR: Failed to create function descriptor\n");
 		    return -1;
@@ -49,6 +51,7 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out)
 	    	return -1;
 
 	}
+	pr_info("The address of output buffer's pointer is 0x%p and the address of output buffer is 0x%p", buf_out, *buf_out);
 	pr_info("Emulated MMIO successfully...\n");
 	return 0;
 }
@@ -59,7 +62,14 @@ int gen_xaccel_desc_header(void* buf, int16_t version, __u32 total_size, __u16 n
 	
 	if (!buf) return -EFAULT;
 
+	pr_info("Generating Descriptor Header...\n");
+	printk("The address is 0x%p, and offset is %x", buf, XACCEL_MAGIC_OFFSET);
+	printk("The value written should be in hex %x", 0xACCE1);
+	printk("Writing value...\n");
 	xaccel_write32(buf, XACCEL_MAGIC_OFFSET, 0xACCE1);
+	printk("The value read at 0x%p, offset %x, is %x...", buf, XACCEL_MAGIC_OFFSET, xaccel_read32(buf, XACCEL_MAGIC_OFFSET));
+
+
 	xaccel_write16(buf, XACCEL_VERSION_OFFSET, 7);
 	xaccel_write16(buf, XACCEL_HEAD_SIZE_OFFSET, sizeof(struct xaccel_desc_header));
 	xaccel_write32(buf, XACCEL_TOT_SIZE_OFFSET, total_size);

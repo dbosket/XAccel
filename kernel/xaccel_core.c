@@ -11,16 +11,12 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 		pr_err("ERROR: Invalid Base Addr\n");
 		return -EFAULT;
 	}
-
-	// Allocate Space for the Device                                                                            
-        pr_info("Allocating space for device object\n");                                                            
-        xdev = kzalloc(sizeof(*xdev), GFP_KERNEL);
-
 	if(!xdev)
 	{
-		pr_err("Failed to allocate memory\n");
-		return -ENOMEM;
+		pr_err("ERROR: Invalid Pointer to xdev obj passed\n");
+		return -EFAULT;
 	}
+
 	xdev->funcs = NULL; //Init to null for later checks
 	
 #ifndef NO_HW
@@ -34,7 +30,15 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 
 	// Build and Parse Descriptor Header
 	struct xaccel_desc_header* desc_head;
-	if (xaccel_build_header(base_addr, &desc_head) || xaccel_check_header(desc_head))
+	desc_head = kzalloc(sizeof(struct xaccel_desc_header), GFP_KERNEL);
+	if (!desc_head)
+	{
+		pr_err("Failed to Allocate Memory\n");
+		xaccel_cleanup(xdev);
+		return -ENOMEM;
+	}
+
+	if (xaccel_build_header(base_addr, desc_head) || xaccel_check_header(desc_head))
 	{
 		pr_info("ERROR: Failed to build descripter header...");
 		xaccel_cleanup(xdev);
@@ -65,21 +69,33 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 	xdev->class = class_create(XACCEL_CLASS_NAME);
 
 
-	struct xaccel_func_desc *temp_f_desc;
-	struct xaccel_function  *temp_func;
+	struct xaccel_func_desc *func_desc_cur;
+	struct xaccel_function  *func_cur;
 	
 	// Initializing function array
 	pr_info("Initializing the function array for this xaccel_device\n");
+	void* func_desc_base = (__u8 *)(base_addr) + FUNC_DESC_OFFSET;
+	
 	for(__u32 i=0; i<xdev->num_functions; i++){
 
-		if (xaccel_build_function_descriptor(base_addr, &temp_f_desc))
+		// Allocate space and initialize current function descriptor	
+		func_desc_cur = kmalloc(sizeof(struct xaccel_func_desc), GFP_KERNEL);
+		if (!func_desc_cur)
+		{
+        		pr_err("Failed to Allocate Memory\n");
+			return -ENOMEM;
+		}
+
+		if (xaccel_build_function_descriptor(func_desc_base, func_desc_cur))
 		{
 			pr_err("ERROR: Failed to allocate memory for function header array\n");
 			xaccel_cleanup(xdev);
 			return -ENOMEM;
-		}
 
-		if (xaccel_create_function_device(xdev, temp_f_desc, temp_func))
+		}
+		func_desc_base = (__u8 *)(func_desc_base) + sizeof(struct xaccel_func_desc);
+
+		if (xaccel_create_function_device(xdev, func_desc_cur, func_cur))
 		{
 			pr_err("ERROR: Failed to build function devices\n");
 			xaccel_cleanup(xdev);
@@ -88,12 +104,12 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 
 		// Initialize character device for current function
 		
-		cdev_init(&(temp_func->cdev), &(xaccel_fops));
-		temp_func->cdev.owner = THIS_MODULE;
-		temp_func->devt = MKDEV(MAJOR(xdev->base_devt), 0);
-		cdev_add(&(temp_func->cdev), temp_func->devt, 1);
-		temp_func->device = device_create(xdev->class, NULL, temp_func->devt, NULL, "xaccel%d_func%d", 0, i);
-		xdev->funcs[i] = *temp_func;
+		cdev_init(&(func_cur->cdev), &(xaccel_fops));
+		func_cur->cdev.owner = THIS_MODULE;
+		func_cur->devt = MKDEV(MAJOR(xdev->base_devt), 0);
+		cdev_add(&(func_cur->cdev), func_cur->devt, 1);
+		func_cur->device = device_create(xdev->class, NULL, func_cur->devt, NULL, "xaccel%d_func%d", 0, i);
+		xdev->funcs[i] = *func_cur;
 	}
 	
 	up(&(xdev->sem));
@@ -140,63 +156,50 @@ int xaccel_check_header(struct xaccel_desc_header* header)
 }
 
 
-// Reading a descriptor from mmap address specified at soruce_addr, and saves to head_out
-int xaccel_build_header(void* source_addr, struct xaccel_desc_header** head_out)
+// Populate a descriptor header object based on address specified at source addr 
+int xaccel_build_header(void* source_addr, struct xaccel_desc_header* desc_head)
 {
-	if (!head_out)
-		return -EFAULT;
-	*head_out = NULL;
+	if (!desc_head || !source_addr)	return -EFAULT;
+	pr_info("Populating runtime descriptor header based on emulated mmap region...");
 
-  	if (source_addr)
-  	{
-    		*head_out = kzalloc(sizeof(struct xaccel_desc_header), GFP_KERNEL);
-		if (!head_out)
-		{
-			pr_err("Failed to Allocate Memory\n");
-			return -ENOMEM;
-		}
-    
-		(*head_out)->magic         = xaccel_read32(source_addr, XACCEL_MAGIC_OFFSET);
-		pr_info("MAGIC Value is: %x...\n", (*head_out)->magic);
-    		(*head_out)->version       = xaccel_read16(source_addr, XACCEL_VERSION_OFFSET);
-    		(*head_out)->header_size   = xaccel_read16(source_addr, XACCEL_HEAD_SIZE_OFFSET); 
-    		(*head_out)->total_size    = xaccel_read32(source_addr, XACCEL_TOT_SIZE_OFFSET);
-    		(*head_out)->num_functions = xaccel_read32(source_addr, XACCEL_NUM_FUNC_OFFSET);
-    		(*head_out)->flags         = xaccel_read16(source_addr, XACCEL_FLAG_OFFSET);
-    		(*head_out)->checksum      = xaccel_read32(source_addr, XACCEL_CHECKSUM_OFFSET);
-    		(*head_out)->device_id     = xaccel_read32(source_addr, XACCEL_DEVICE_ID_OFFSET);
-    
-  		return 0;
-	}
-	return -1;
+#ifdef DEBUG 
+	printk("The value read at 0x%p, offset %x, is %x...", 
+		source_addr, 
+		XACCEL_MAGIC_OFFSET, 
+		xaccel_read32(source_addr, XACCEL_MAGIC_OFFSET));
+#endif
+
+	(desc_head)->magic         = xaccel_read32(source_addr, XACCEL_MAGIC_OFFSET);
+	(desc_head)->version       = xaccel_read16(source_addr, XACCEL_VERSION_OFFSET);
+    	(desc_head)->header_size   = xaccel_read16(source_addr, XACCEL_HEAD_SIZE_OFFSET); 
+    	(desc_head)->total_size    = xaccel_read32(source_addr, XACCEL_TOT_SIZE_OFFSET);
+    	(desc_head)->num_functions = xaccel_read32(source_addr, XACCEL_NUM_FUNC_OFFSET);
+    	(desc_head)->flags         = xaccel_read16(source_addr, XACCEL_FLAG_OFFSET);
+    	(desc_head)->checksum      = xaccel_read32(source_addr, XACCEL_CHECKSUM_OFFSET);
+    	(desc_head)->device_id     = xaccel_read32(source_addr, XACCEL_DEVICE_ID_OFFSET);
+		
+#ifdef DEBUG 
+	pr_info("MAGIC Value is: %x...\n", (desc_head)->magic);
+#endif
+  	return 0;
 }
 
-// Reading a function descriptor from mmap address specified at source addr, and saves to header 
-int xaccel_build_function_descriptor(void* source_addr, struct xaccel_func_desc** desc_out)
+// Populate a function descriptor object based on address specified at source_addr
+int xaccel_build_function_descriptor(void* source_addr, struct xaccel_func_desc* func_desc)
 {
-	if (source_addr)
-	{
-		*desc_out = kmalloc(sizeof(struct xaccel_func_desc), GFP_KERNEL);
-		if (!desc_out)
-		{
-        		pr_err("Failed to Allocate Memory\n");
-			return -ENOMEM;
-		}
-
-    		(*desc_out)->func_id        = xaccel_read16(source_addr, XACCEL_FUNC_ID_OFFSET);
-    		(*desc_out)->func_type      = xaccel_read16(source_addr, XACCEL_FUNC_TYPE_OFFSET);
-    		(*desc_out)->func_version   = xaccel_read16(source_addr, XACCEL_FUNC_VERS_OFFSET);
-    		(*desc_out)->irq_index      = xaccel_read16(source_addr, XACCEL_IRQ_INDEX);
-    		(*desc_out)->mmio_offset    = xaccel_read32(source_addr, XACCEL_MMIO_OFFSET);
-    		(*desc_out)->mmio_size      = xaccel_read32(source_addr, XACCEL_MMIO_SIZE);
-    		(*desc_out)->caps           = xaccel_read32(source_addr, XACCEL_CAPS);
-    		(*desc_out)->reg_layout_ver = xaccel_read32(source_addr, XACCEL_REG_LAYOUT_VER);
-    		(*desc_out)->ext_offset     = xaccel_read32(source_addr, XACCEL_EXT_OFFSET);
-    		(*desc_out)->ext_size       = xaccel_read32(source_addr, XACCEL_EXT_SIZE);
-
-    		return 0;
-	}
-	return -1;
+	if (!func_desc || !source_addr) return -EFAULT;
+    	
+	(func_desc)->func_id        = xaccel_read16(source_addr, XACCEL_FUNC_ID_OFFSET);
+    	(func_desc)->func_type      = xaccel_read16(source_addr, XACCEL_FUNC_TYPE_OFFSET);
+    	(func_desc)->func_version   = xaccel_read16(source_addr, XACCEL_FUNC_VERS_OFFSET);
+    	(func_desc)->irq_index      = xaccel_read16(source_addr, XACCEL_IRQ_INDEX);
+    	(func_desc)->mmio_offset    = xaccel_read32(source_addr, XACCEL_MMIO_OFFSET);
+    	(func_desc)->mmio_size      = xaccel_read32(source_addr, XACCEL_MMIO_SIZE);
+    	(func_desc)->caps           = xaccel_read32(source_addr, XACCEL_CAPS);
+    	(func_desc)->reg_layout_ver = xaccel_read32(source_addr, XACCEL_REG_LAYOUT_VER);
+    	(func_desc)->ext_offset     = xaccel_read32(source_addr, XACCEL_EXT_OFFSET);
+    	(func_desc)->ext_size       = xaccel_read32(source_addr, XACCEL_EXT_SIZE);
+    	return 0;
 }
 
 

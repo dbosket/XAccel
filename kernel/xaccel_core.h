@@ -20,6 +20,8 @@
 #include "../include/xaccel_desc.h"
 #include "../include/xaccel_macros.h"
 
+#define FUNC_DESC_OFFSET sizeof(struct xaccel_desc_header)
+/*
 #ifdef debug
 	#define XACCEL_REG_CONTROL    0x00
 	#define XACCEL_REG_STATUS     0X04
@@ -42,7 +44,7 @@
 
 
 #endif
-
+*/
 
 struct xaccel_function
 {
@@ -89,10 +91,10 @@ void xaccel_cleanup(struct xaccel_dev *xdev);
 
 
 // Parse the descriptor recieved
-int xaccel_build_header(void* source_addr, struct xaccel_desc_header** head_out);
+int xaccel_build_header(void* source_addr, struct xaccel_desc_header* head_out);
 
 // Reading a function descriptor from mmap address specified at source addr, and saves to header 
-int xaccel_build_function_descriptor(void* source_addr, struct xaccel_func_desc** desc_out);
+int xaccel_build_function_descriptor(void* source_addr, struct xaccel_func_desc* desc_out);
 
 // Function to read in raw bytes, return 0 if positive or negative number otherwise
 int xaccel_check_header(struct xaccel_desc_header* header);

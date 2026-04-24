@@ -26,12 +26,12 @@ struct file_operations xaccel_fops = {
 
 static int __init xaccel_init(void)
 {
-	void *mmio_buf = NULL;
 	pr_info("xaccel: init\n");
 
 #ifdef NO_HW
 	
 	enum test_case test= ONE_FUNCTION;
+	void *mmio_buf = NULL;
 	pr_info("Populating RAM with test object to emulate MMIO\n");
 	if (gen_xaccel_test_obj(test, &mmio_buf))
 	{
@@ -44,8 +44,16 @@ static int __init xaccel_init(void)
 
 
 #endif
+	// Allocate Space for the Device                                                                            
+        pr_info("Allocating space for device object\n");                                                            
+        gps_xdev = kzalloc(sizeof(*gps_xdev), GFP_KERNEL);
 
-	if (xaccel_create_instance(&mmio_buf, gps_xdev, xaccel_fops))
+	if(!gps_xdev)
+	{
+		pr_err("Failed to allocate memory\n");
+		return -ENOMEM;
+	}
+	if (xaccel_create_instance(mmio_buf, gps_xdev, xaccel_fops))
 	{
 		pr_info("ERROR: Failed to create test scenario instance\n");
 		return -1;
