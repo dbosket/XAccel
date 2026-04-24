@@ -36,25 +36,25 @@
 
 // XACCEL Descriptor Header Offsets
 #define MAX_VERSION_SUPPORTED   1     // The latest version of descriptor supported
-#define XACCEL_MAGIC_OFFSET     0x0
-#define XACCEL_VERSION_OFFSET   0x4
-#define XACCEL_HEAD_SIZE_OFFSET 0x6
-#define XACCEL_TOT_SIZE_OFFSET  0x8
-#define XACCEL_NUM_FUNC_OFFSET  0x12
-#define XACCEL_FLAG_OFFSET      0x14
-#define XACCEL_CHECKSUM_OFFSET  0x16
-#define XACCEL_DEVICE_ID_OFFSET 0x20
+#define XACCEL_MAGIC_OFFSET     0x00
+#define XACCEL_VERSION_OFFSET   0x04
+#define XACCEL_HEAD_SIZE_OFFSET 0x06
+#define XACCEL_TOT_SIZE_OFFSET  0x08
+#define XACCEL_NUM_FUNC_OFFSET  0x0C
+#define XACCEL_FLAG_OFFSET      0x0E
+#define XACCEL_CHECKSUM_OFFSET  0x10
+#define XACCEL_DEVICE_ID_OFFSET 0x14
 
 // XACCEL Function Descriptor Offsets
-#define XACCEL_FUNC_ID_OFFSET   0x0
-#define XACCEL_FUNC_TYPE_OFFSET 0x2
-#define XACCEL_FUNC_VERS_OFFSET 0x4
-#define XACCEL_IRQ_INDEX        0x6
-#define XACCEL_MMIO_OFFSET      0x8
-#define XACCEL_MMIO_SIZE        0x12
-#define XACCEL_CAPS             0x16
-#define XACCEL_REG_LAYOUT_VER   0x20
-#define XACCEL_EXT_OFFSET	0x24
-#define XACCEL_EXT_SIZE		0x28
+#define XACCEL_FUNC_ID_OFFSET   0x00
+#define XACCEL_FUNC_TYPE_OFFSET 0x02
+#define XACCEL_FUNC_VERS_OFFSET 0x04
+#define XACCEL_IRQ_INDEX        0x06
+#define XACCEL_MMIO_OFFSET      0x08
+#define XACCEL_MMIO_SIZE        0x0C
+#define XACCEL_CAPS             0x10
+#define XACCEL_REG_LAYOUT_VER   0x14
+#define XACCEL_EXT_OFFSET	0x18
+#define XACCEL_EXT_SIZE		0x1C
 
 #endif

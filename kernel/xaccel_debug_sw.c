@@ -12,8 +12,8 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out)
 
 	pr_info("The test case is %d...\n", test);
 
-	__u16 func_desc_sz = sizeof(struct xaccel_func_desc);	
-	__u16 desc_header_sz = sizeof(struct xaccel_desc_header);
+	__u8 func_desc_sz = sizeof(struct xaccel_func_desc);	
+	__u8 desc_header_sz = sizeof(struct xaccel_desc_header);
 
 	switch (test)	
 	{
@@ -22,14 +22,14 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out)
 	    case ONE_FUNCTION:
 	        
 		struct xaccel_desc_header head = {
-			.magic         = 0xaccel,
-			.version       = 1,
+			.magic         = XACCEL_DESC_MAGIC,
+			.version       = 8,
 			.header_size   = sizeof(struct xaccel_desc_header),
 			.total_size    = sizeof(struct xaccel_desc_header) + sizeof(struct xaccel_func_desc),
 			.num_functions = 1,
-			.flags         = 0,
-			.checksum      = 0x1111111,
-			.device_id     = 0x17171717
+			.flags         = 0xF,
+			.checksum      = 0x11111111,
+			.device_id     = 0x1FFFFFFF
 		};
 
 		struct xaccel_func_desc fdesc = {
@@ -96,8 +96,7 @@ int gen_xaccel_desc_header(void* buf, int16_t version, __u32 total_size, __u16 n
 	xaccel_write32(buf, XACCEL_MAGIC_OFFSET, 0xACCE1);
 	printk("The value read at 0x%p, offset %x, is %x...", buf, XACCEL_MAGIC_OFFSET, xaccel_read32(buf, XACCEL_MAGIC_OFFSET));
 
-
-	xaccel_write16(buf, XACCEL_VERSION_OFFSET, 7);
+	xaccel_write16(buf, XACCEL_VERSION_OFFSET, version);
 	xaccel_write16(buf, XACCEL_HEAD_SIZE_OFFSET, sizeof(struct xaccel_desc_header));
 	xaccel_write32(buf, XACCEL_TOT_SIZE_OFFSET, total_size);
 	xaccel_write16(buf, XACCEL_NUM_FUNC_OFFSET, num_funcs);

@@ -104,7 +104,7 @@ int xaccel_create_function_device(struct xaccel_dev *xdev, struct xaccel_func_de
 
 
 // Destory the devices created in the function
-int xaccel_destroy_function_device(struct xaccel_dev *xdev);
+int xaccel_destroy_function_device(struct xaccel_function *func);
 
 // Verifying function's registers are valid
 int xaccel_verify_func_regs(struct xaccel_dev *xdev, struct xaccel_func_desc *func_desc);

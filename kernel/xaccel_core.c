@@ -26,7 +26,7 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 	// Initialize Semaphore
 	pr_info("Initializaing the semaphore\n");
 	sema_init(&(xdev->sem), MAX_LOCK_HOLDERS);
-	down(&(xdev->sem));
+	//down(&(xdev->sem));
 
 	// Build and Parse Descriptor Header
 	struct xaccel_desc_header* desc_head;
@@ -63,11 +63,17 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 			xaccel_cleanup(xdev);
 			return -1;
 		}
+
 	// Creating class for xaccel device
 	pr_info("Creating class for xaccel devices\n");
-	xdev->class = class_create(XACCEL_CLASS_NAME);
-	//xdev->num_functions = desc_head->num_functions;
 
+	// Initialize reminader of xaccel device instance
+	xdev->class = class_create(XACCEL_CLASS_NAME);
+	xdev->num_functions = desc_head->num_functions;
+	xdev->mmio_size = desc_head->total_size;	
+	xdev->hdr = desc_head;
+
+	// Temporary variables for function descriptors and function objects
 	struct xaccel_func_desc *func_desc_cur;
 	struct xaccel_function  *func_cur;
 	
@@ -78,30 +84,35 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 	for(__u32 i=0; i<xdev->num_functions; i++){
 
 		// Allocate space and initialize current function descriptor	
+		/*
 		func_desc_cur = kmalloc(sizeof(struct xaccel_func_desc), GFP_KERNEL);
 		if (!func_desc_cur)
 		{
         		pr_err("Failed to Allocate Memory\n");
 			return -ENOMEM;
 		}
+		*/
+		func_desc_cur = &(xdev->funcs[i].desc);
 
 		if (xaccel_build_function_descriptor(func_desc_base, xdev, func_desc_cur))
 		{
-			pr_err("ERROR: Failed to allocate memory for function header array\n");
+			pr_err("ERROR: Failed to build function descriptor\n");
 			xaccel_cleanup(xdev);
 			return -ENOMEM;
 
 		}
+
 		func_desc_base = (__u8 *)(func_desc_base) + sizeof(struct xaccel_func_desc);
-		
-		// Allocate space and initialize function descriptors
+		/*		
+		// Allocate space and initialize function objects
 		func_cur = kmalloc(sizeof(struct xaccel_function), GFP_KERNEL);
 		if (!func_cur)
 		{
         		pr_err("Failed to Allocate Memory\n");
 			return -ENOMEM;
 		}
-
+		*/
+		func_cur = &(xdev->funcs[i]);
 		if (xaccel_create_function_device(xdev, func_desc_cur, func_cur))
 		{
 			pr_err("ERROR: Failed to build function devices\n");
@@ -117,7 +128,7 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 		xdev->funcs[i] = *func_cur;
 	}
 	
-	up(&(xdev->sem));
+	//up(&(xdev->sem));
 	pr_info("XACCEL_CREATE_INSTANCE() returning successfully...\n");
 	return 0;
 }
@@ -130,20 +141,27 @@ void xaccel_cleanup(struct xaccel_dev *xdev)
 	// Release function objects and cdevs	
 	if (xdev->funcs)
 	{
-		struct xaccel_function* temp_func;
+		struct xaccel_function* func_cur;
 		for (__u32 i=0; i<xdev->num_functions; i++)
 		{
+			xaccel_destroy_function_device(func_cur);
+			/*
 			temp_func = &(xdev->funcs[i]);
 			device_destroy(xdev->class, temp_func->devt);
 			pr_info("Deleting char device for func[%d]\n", i);
 			cdev_del(&(temp_func->cdev));
+			*/
 		}
+
 		kfree(xdev->funcs);
 		xdev->funcs = NULL;
 	}	
 	if (xdev->class)
 		class_destroy(xdev->class);
 	unregister_chrdev_region(xdev->base_devt, xdev->num_functions);
+	if (xdev->hdr)
+		kfree(xdev->hdr);
+	
 	kfree(xdev);
 	xdev = NULL;
 	pr_info("XACCEL_CLEANUP() Returning Successfully...\n");
@@ -193,7 +211,7 @@ int xaccel_build_header(void* source_addr, struct xaccel_desc_header* desc_head)
 int xaccel_build_function_descriptor(void* source_addr, struct xaccel_dev* xdev, struct xaccel_func_desc* func_desc)
 {
 	if (!func_desc || !source_addr) return -EFAULT;
-    	
+	
 	(func_desc)->func_id        = xaccel_read16(source_addr, XACCEL_FUNC_ID_OFFSET);
     	(func_desc)->func_type      = xaccel_read16(source_addr, XACCEL_FUNC_TYPE_OFFSET);
     	(func_desc)->func_version   = xaccel_read16(source_addr, XACCEL_FUNC_VERS_OFFSET);
@@ -226,8 +244,17 @@ int xaccel_create_function_device(struct xaccel_dev *xdev, struct xaccel_func_de
 }
 
 
-int xaccel_destroy_function_device(struct xaccel_dev *xdev)
+// This function will clean up the resources allocated for one runtime function object
+int xaccel_destroy_function_device(struct xaccel_function* func)
 {
+    
+	if (!func) return -EFAULT;
+    	// Clean of character device registration
+    	device_destroy(func->parent->class, func->devt);
+	cdev_del(&(func->cdev));
+    
+    	// Disassociate the shared header from this function device
+    	func->parent = NULL;	
     return 0;
 }
 
@@ -243,7 +270,12 @@ int xaccel_verify_func_regs(struct xaccel_dev *xdev, struct xaccel_func_desc *fu
 	
 	// Verify that Function's registers do not extend beyond total mmaped region
 	pr_info("Checking that function boundary is not beyond mmio boundary...");
-	if (mmap_boundary < cur_func_boundary) return -EINVAL;	
+	if (mmap_boundary < cur_func_boundary) 
+	{
+		printk("MMIO boundary %p, Function Boundary %p...", mmap_boundary, cur_func_base);
+		pr_err("Current function boundary is beyond the mmio_boundary");	
+		return -EINVAL;	
+	}
 	
 	if (func_desc->ext_size > 0 )
 	{
@@ -262,7 +294,7 @@ void xaccel_print_desc_header(struct xaccel_desc_header* head)
 	printk("Header: Header Size %x", head->header_size);
 	printk("Header: Total Size %x", head->total_size);
 	printk("Header: Num Functions %d", head->num_functions);
-	printk("Header: Flag  %d", head->flags);
+	printk("Header: Flag  %x", head->flags);
 	printk("Header: Checksum %x", head->checksum);
 	printk("Header: Device Id %x", head->device_id);
 }
@@ -271,15 +303,15 @@ void xaccel_print_desc_header(struct xaccel_desc_header* head)
 void xaccel_print_func_desc(struct xaccel_func_desc desc)
 {
 	printk("Function: ID %d", desc.func_id);
-	printk("Function: Type %d", desc.func_type);
+	printk("Function: Type %x", desc.func_type);
 	printk("Function: Version %d", desc.func_version);
 	printk("Function: IRQ Index %d", desc.irq_index);
 	printk("Function: MMIO Offset %x", desc.mmio_offset);
-	printk("Function: MMIO Size %d", desc.mmio_size);
+	printk("Function: MMIO Size %x", desc.mmio_size);
 	printk("Function: Caps  %d", desc.caps);
 	printk("Function: Reg Layout Ver %d", desc.reg_layout_ver);
-	printk("Function: Ext Offset %d", desc.ext_offset);
-	printk("Function: Ext Size %d", desc.ext_size);
+	printk("Function: Ext Offset %x", desc.ext_offset);
+	printk("Function: Ext Size %x", desc.ext_size);
 }
 
 
