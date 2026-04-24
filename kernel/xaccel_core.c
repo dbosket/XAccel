@@ -46,6 +46,9 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 		
 	}	
 	xdev->hdr = desc_head;
+	xdev->num_functions = desc_head->num_functions;
+	xdev->mmio_base = base_addr;
+	xdev->mmio_size = desc_head->total_size;	
 
 	// Allocating space for function array
 	xdev->funcs = kcalloc(desc_head->num_functions, sizeof(struct xaccel_function), GFP_KERNEL);
@@ -69,9 +72,6 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 
 	// Initialize reminader of xaccel device instance
 	xdev->class = class_create(XACCEL_CLASS_NAME);
-	xdev->num_functions = desc_head->num_functions;
-	xdev->mmio_size = desc_head->total_size;	
-	xdev->hdr = desc_head;
 
 	// Temporary variables for function descriptors and function objects
 	struct xaccel_func_desc *func_desc_cur;
@@ -83,17 +83,9 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 	
 	for(__u32 i=0; i<xdev->num_functions; i++){
 
-		// Allocate space and initialize current function descriptor	
-		/*
-		func_desc_cur = kmalloc(sizeof(struct xaccel_func_desc), GFP_KERNEL);
-		if (!func_desc_cur)
-		{
-        		pr_err("Failed to Allocate Memory\n");
-			return -ENOMEM;
-		}
-		*/
 		func_desc_cur = &(xdev->funcs[i].desc);
 
+		// For the function descriptor
 		if (xaccel_build_function_descriptor(func_desc_base, xdev, func_desc_cur))
 		{
 			pr_err("ERROR: Failed to build function descriptor\n");
@@ -102,16 +94,9 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 
 		}
 
+		// For the runtime function object
 		func_desc_base = (__u8 *)(func_desc_base) + sizeof(struct xaccel_func_desc);
-		/*		
-		// Allocate space and initialize function objects
-		func_cur = kmalloc(sizeof(struct xaccel_function), GFP_KERNEL);
-		if (!func_cur)
-		{
-        		pr_err("Failed to Allocate Memory\n");
-			return -ENOMEM;
-		}
-		*/
+
 		func_cur = &(xdev->funcs[i]);
 		if (xaccel_create_function_device(xdev, func_desc_cur, func_cur))
 		{
@@ -120,12 +105,29 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 			return -1;
 		}
 		// Initialize character device for current function
+		pr_info("Initializing cdev...");	
 		cdev_init(&(func_cur->cdev), &(xaccel_fops));
 		func_cur->cdev.owner = THIS_MODULE;
-		func_cur->devt = MKDEV(MAJOR(xdev->base_devt), 0);
-		cdev_add(&(func_cur->cdev), func_cur->devt, 1);
+		func_cur->devt = MKDEV(MAJOR(xdev->base_devt), MINOR(xdev->base_devt) + i);
+		pr_info("Addding cdev...");
+		int ret = cdev_add(&(func_cur->cdev), func_cur->devt, 1);
+		if (ret)
+		{
+			pr_err("cdev_add failed for func %u: %d\n", i, ret);
+			return -1;
+		}
+
+		pr_info("Creating device for function [%d] i",i);
 		func_cur->device = device_create(xdev->class, NULL, func_cur->devt, NULL, "xaccel%d_func%d", 0, i);
-		xdev->funcs[i] = *func_cur;
+
+		if (IS_ERR(func_cur->device)) {
+    			ret = PTR_ERR(func_cur->device);
+    			pr_err("device_create failed for func %d: %d\n", i, ret);
+    			cdev_del(&func_cur->cdev);
+    			xaccel_cleanup(xdev);
+    			return ret;
+		}
+
 	}
 	
 	//up(&(xdev->sem));
@@ -144,15 +146,9 @@ void xaccel_cleanup(struct xaccel_dev *xdev)
 		struct xaccel_function* func_cur;
 		for (__u32 i=0; i<xdev->num_functions; i++)
 		{
+			func_cur = &(xdev->funcs[i]);
 			xaccel_destroy_function_device(func_cur);
-			/*
-			temp_func = &(xdev->funcs[i]);
-			device_destroy(xdev->class, temp_func->devt);
-			pr_info("Deleting char device for func[%d]\n", i);
-			cdev_del(&(temp_func->cdev));
-			*/
 		}
-
 		kfree(xdev->funcs);
 		xdev->funcs = NULL;
 	}	

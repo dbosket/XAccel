@@ -30,7 +30,7 @@ static int __init xaccel_init(void)
 
 #ifdef NO_HW
 	
-	enum test_case test= ONE_FUNCTION;
+	enum test_case test= TWO_FUNCTION;
 	void *mmio_buf = NULL;
 	pr_info("Populating RAM with test object to emulate MMIO\n");
 	if (gen_xaccel_test_obj(test, &mmio_buf))
@@ -39,8 +39,6 @@ static int __init xaccel_init(void)
 	    return -EFAULT;
 	}
 #else
-
-
 
 
 #endif
@@ -61,81 +59,7 @@ static int __init xaccel_init(void)
 	
 	xaccel_print_xaccel_instance(gps_xdev);
 
-	/*	
-	// Allocate Space for the Device
-	pr_info("Allocating space for device object\n");
-	gps_xdev = kzalloc(sizeof(*gps_xdev), GFP_KERNEL);	
-	
-	if(!gps_xdev)
-	{
-	    pr_err("Failed to allocate memory");
-	    return -ENOMEM;
-	}
-	
-	// Initialize the Semaphore
-	pr_info("Initilizing the semaphore\n");
-	sema_init(&(gps_xdev->sem), MAX_LOCK_HOLDERS);
-	down(&(gps_xdev->sem));
-	
-	//TODO: Add in Memory Mapping
-	//TODO: Parse Descriptor Header
-	//TODO: Parse Function Descriptor
-	//TODO: Build Runtime Function Objects
-
-	// FIXME: STUB CODE
-	gps_xdev->num_functions = 1;
-	gps_xdev->funcs = kcalloc(1, sizeof(gps_xdev->funcs[0]), GFP_KERNEL);
-
-	
-	// Allocating device numbers for new character device
-	pr_info("Allocating device numbers for character device\n");
-	ret = alloc_chrdev_region(&(gps_xdev->base_devt), FIRST_MINOR, gps_xdev->num_functions, XACCEL_NAME);
-	if (ret)
-	{
-		pr_err("xaccel: alloc_chrdev_region failed: %d\n", ret);
-		up(&(gps_xdev->sem));
-		kfree(gps_xdev);
-		return ret;
-	}
-	
-	// Create the class for xaccel
-	pr_info("Creating class for xaccel devices\n");
-	gps_xdev->class = class_create(XACCEL_CLASS_NAME);
-	
-		
-	// FIXME: STUB CODE START
-	struct xaccel_function* func =  &(gps_xdev->funcs[0]);	
-	func->parent = gps_xdev;
-	
-	func->desc.func_id = 7;
-	func->desc.mmio_offset = 0;
-	func->desc.mmio_size = 0x100;
-	func->desc.caps = XACCEL_CAP_MMIO_RW;
-
-
-	func->regs = gps_xdev->mmio_base;
-
-	cdev_init(&(func->cdev), &(xaccel_fops));
-	func->cdev.owner = THIS_MODULE;
-	func->devt = MKDEV(MAJOR(gps_xdev->base_devt), 0);
-	cdev_add(&(func->cdev), func->devt, 1);
-	func->device = device_create(gps_xdev->class, NULL, func->devt, NULL, "xaccel0_func0");	
-	gps_xdev->funcs = func;	
-
-	
-	
-	cdev_init(g_xaccel_dev.cdev, &xaccel_fops);
-	g_xaccel_dev.cdev.owner = THIS_MODULE;
-	// Inform the kernel about the 
-	ret = cdev_add(g_xaccel_dev.cdev, g_xaccel_dev.base_devt, 1);
-	if (ret)
-	{
-		pr_err("xacccel: cdev_add failed: %d\n", ret);
-		// Unregistering previous alloc device numbers
-		unregister_chrdev_region(g_xaccel_dev.base_devt, 1);
-		return ret;
-	}
-
+	/*
 
 	// Error Handling Routine
 	if (IS_ERR(gps_xdev->dev))
