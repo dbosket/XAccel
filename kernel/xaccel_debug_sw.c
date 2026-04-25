@@ -72,7 +72,7 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out)
 			fdesc[1].func_type      = 3;
 			fdesc[1].func_version   = 1;
 			fdesc[1].irq_index      = 0;
-			fdesc[1].mmio_offset    = sizeof(struct xaccel_desc_header);
+			fdesc[1].mmio_offset    = sizeof(struct xaccel_desc_header) * 2;
 			fdesc[1].mmio_size      = sizeof(struct xaccel_func_desc);
 			fdesc[1].caps           = XACCEL_CAP_MMIO_RW;
 			fdesc[1].reg_layout_ver = 1;

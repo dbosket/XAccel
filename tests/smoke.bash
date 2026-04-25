@@ -26,12 +26,13 @@ sudo dmesg | tail -n 10
 
 
 echo "STEP 3: Verify device file exists"
-if  ! compgen -G "/dev/xaccel*_func*" > /dev/null; then
+if compgen -G "/dev/xaccel*_func*" > /dev/null; then
+	sudo chmod 666 /dev/xaccel*_func*
+else
 	echo "Device File Deesn't exist yet...";
 	exit 1
 fi
 
-sudo chmod 666 /dev/xaccel*_func*
 
 echo "STEP 4: Run Smokescreen Tests"
 if [[ ! -x "$XACCEL/tests/smoketest" ]]; then
@@ -39,12 +40,16 @@ if [[ ! -x "$XACCEL/tests/smoketest" ]]; then
         exit 1	
 fi
 
-if [[ -n $1 ]]; then
-	"$XACCEL/tests/smoketest" "$1"
-else
-	"$XACCEL/tests/smoketest"
-fi
 
+if [[ -n "${1:-}" ]]; then
+        "$XACCEL/tests/smoketest" "$1"
+else
+        for dev in /dev/xaccel*_func*; do
+                [[ -e "$dev" ]] || continue
+                echo "Running smoketest on $dev"
+                "$XACCEL/tests/smoketest" "$dev" "$1" || exit 1
+        done
+fi
 
 
 

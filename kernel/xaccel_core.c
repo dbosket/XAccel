@@ -2,7 +2,7 @@
 
 
 // Creates an instance of xaccel device base on mmio region
-int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file_operations xaccel_fops)
+int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file_operations *xaccel_fops)
 {
 	pr_info("Creating instance of xaccel device");
 
@@ -106,7 +106,7 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 		}
 		// Initialize character device for current function
 		pr_info("Initializing cdev...");	
-		cdev_init(&(func_cur->cdev), &(xaccel_fops));
+		cdev_init(&(func_cur->cdev), xaccel_fops);
 		func_cur->cdev.owner = THIS_MODULE;
 		func_cur->devt = MKDEV(MAJOR(xdev->base_devt), MINOR(xdev->base_devt) + i);
 		pr_info("Addding cdev...");

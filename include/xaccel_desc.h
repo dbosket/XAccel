@@ -85,42 +85,42 @@ static inline int xaccel_funct_has_irq(const struct xaccel_func_desc *head)
 }
 
 // Write 32 bytes to either hardware or kernel memory
-static inline void xaccel_write32(void* base, __u32 offset, __u32 val)
+static inline void xaccel_write32(void* base, uint32_t offset, uint32_t val)
 {
 	#ifdef NO_HW
-	*(__u32 *)((__u8 *)base + offset) = val;
+	*(uint32_t *)((uint8_t *)base + offset) = val;
 	#else
-	iowrite32(val, (__u8 __iomem *)base + offset);
+	iowrite32(val, (uint8_t __iomem *)base + offset);
 	#endif
 }
 
 // Write 16 bytes to either hardware or kernel memory
-static inline void xaccel_write16(void* base, __u32 offset, __u32 val)
+static inline void xaccel_write16(void* base, uint32_t offset, uint32_t val)
 {
 	#ifdef NO_HW
-	*(__u16 *)((__u8 *)base + offset) = val;
+	*(uint16_t *)((uint8_t *)base + offset) = val;
 	#else
-	iowrite16(val,(__u8 __iomem *)base + offset);
+	iowrite16(val,(uint8_t __iomem *)base + offset);
 	#endif
 }
 
 // Read 32 bytes from hardware or kernel memory
-static inline __u32 xaccel_read32(void* base, __u32 offset)
+static inline uint32_t xaccel_read32(void* base, uint32_t offset)
 {
 	#ifdef NO_HW
-	return *(__u32 *)((__u8 *)base + offset);
+	return *(uint32_t *)((uint8_t *)base + offset);
 	#else
-	return ioread32((__u8 __iomem *)base + offset);	
+	return ioread32((uint8_t __iomem *)base + offset);	
 	#endif
 }
 
 // Read 16 bytes from hardware or kernel memory
-static inline __u16 xaccel_read16(void* base, __u32 offset)
+static inline uint16_t xaccel_read16(void* base, uint32_t offset)
 {
 	#ifdef NO_HW
-	return *(__u16 *)((__u8 *)base + offset);
+	return *(uint16_t *)((uint8_t *)base + offset);
 	#else
-	return ioread16((__u8 __iomem *)base + offset);	
+	return ioread16((uint8_t __iomem *)base + offset);	
 	#endif
 }
 

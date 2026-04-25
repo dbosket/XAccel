@@ -46,7 +46,14 @@ int xaccel_ioc_read(int fd, struct xaccel_reg_io *req)
 
 int main (int argc, char** argv)
 {
-    int fd = open("/dev/xaccel0_func0", O_RDWR);
+
+    if (argc < 2)
+    {
+	    fprintf(stderr, "ERROR: specify the device you want to use!\n");
+	    return EXIT_FAILURE;
+    }
+    fprintf(stdout, "First command arg is %s\n", argv[1]);
+    int fd = open(argv[1], O_RDWR);
     if (fd < 0)
     {
 	    fprintf(stderr, "ERROR: open() failed...\n");
@@ -64,7 +71,7 @@ int main (int argc, char** argv)
     if (argc)
     {
     
-        switch (atoi(argv[0])){
+        switch (atoi(argv[2])){
 	    // Get call get info command 
 	    case 0:
 		xaccel_ioc_get_info(fd);

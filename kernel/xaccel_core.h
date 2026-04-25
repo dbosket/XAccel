@@ -79,7 +79,7 @@ struct xaccel_dev
 
 
 // Create instance of struct xaccel_device
-int xaccel_create_instance(void* mmio_base, struct xaccel_dev* xdev, struct file_operations fops);
+int xaccel_create_instance(void* mmio_base, struct xaccel_dev* xdev, struct file_operations* fops);
 
 
 // Destroy instance of struct xaccel_device

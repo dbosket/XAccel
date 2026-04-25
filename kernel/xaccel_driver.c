@@ -51,7 +51,7 @@ static int __init xaccel_init(void)
 		pr_err("Failed to allocate memory\n");
 		return -ENOMEM;
 	}
-	if (xaccel_create_instance(mmio_buf, gps_xdev, xaccel_fops))
+	if (xaccel_create_instance(mmio_buf, gps_xdev, &xaccel_fops))
 	{
 		pr_info("ERROR: Failed to create test scenario instance\n");
 		return -1;
