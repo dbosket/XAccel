@@ -59,40 +59,15 @@ static int __init xaccel_init(void)
 	
 	xaccel_print_xaccel_instance(gps_xdev);
 
-	/*
 
 	// Error Handling Routine
 	if (IS_ERR(gps_xdev->dev))
 	{	
-		ret = PTR_ERR(gps_xdev->dev);
+		int ret = PTR_ERR(gps_xdev->dev);
 		pr_err("xaccel: device_create failed: %d\n", ret);
-		struct xaccel_function* temp_func;
-		if (gps_xdev)
-		{
-		    for (int i=0; i<gps_xdev->num_functions; i++)
-		    {
-		        temp_func = &(gps_xdev->funcs[i]);
-			device_destroy(gps_xdev->class, temp_func->devt);
-	    	        cdev_del(&(temp_func->cdev));
-		    }	
-		}
-		kfree(gps_xdev->funcs); 	
-		gps_xdev->funcs = NULL;
-
-		if (gps_xdev->class) 
-		{
-		    class_destroy(gps_xdev->class); // Destroy Class
-		    gps_xdev->class = NULL;
-		}
-		unregister_chrdev_region(gps_xdev->base_devt, 1);
-		up(&(gps_xdev->sem));
-		kfree(gps_xdev);
-		gps_xdev = NULL;
+		xaccel_cleanup(gps_xdev);
 		return ret;
 	}
-
-	up(&(gps_xdev->sem));
-	*/
 	pr_info("XACCEL_INIT() Returning Successfully...\n");	
 	return 0;
 }
@@ -101,33 +76,8 @@ static int __init xaccel_init(void)
 static void __exit xaccel_exit(void)
 {
 
-	pr_info("xaccel exit() starting...");
+	pr_info("XACCEL_EXIT() starting...");
 	xaccel_cleanup(gps_xdev);
-	/*
-	if (!gps_xdev) return;
-	
-	// Releasing function objs and cdevs
-	pr_info("Releasing function objects and cdevs");
-	if (gps_xdev->funcs)
-	{
-	    struct xaccel_function* temp_func;
-	    for (int i=0; i<gps_xdev->num_functions; i++)
-	    {
-		
-	        temp_func = &(gps_xdev->funcs[i]);
-		device_destroy(gps_xdev->class, temp_func->devt);
-		pr_info("Deleting char device for func[%d]\n", i);
-	    	cdev_del(&(temp_func->cdev));
-	    }
-	kfree(gps_xdev->funcs); 	
-	gps_xdev->funcs = NULL;
-	}
-	if (gps_xdev->class) 
-	    class_destroy(gps_xdev->class); // Destroy Class
-	unregister_chrdev_region(gps_xdev->base_devt, gps_xdev->num_functions); //Release Device Number Region
-	kfree(gps_xdev);
-	gps_xdev = NULL;
-	*/
 	pr_info("XACCEL_EXIT() Returning Successfully...\n");
 	return;
 }
@@ -167,51 +117,51 @@ static long int xaccel_ioctl( struct file* fp, unsigned int cmd, unsigned long i
 	switch (cmd){
 		case XACCEL_IOC_GET_INFO:
 
-		    struct xaccel_info f_info;
-		    f_info.func_id        = func->desc.func_id;
-		    f_info.func_type      = func->desc.func_type;
-		    f_info.func_version   = func->desc.func_version;
-		    f_info.irq_index      = func->desc.irq_index;
-		    f_info.mmio_size      = func->desc.mmio_size;
-		    f_info.caps           = func->desc.caps;
-		    f_info.reg_layout_ver = func->desc.reg_layout_ver;
+			struct xaccel_info f_info;
+		    	f_info.func_id        = func->desc.func_id;
+		    	f_info.func_type      = func->desc.func_type;
+		    	f_info.func_version   = func->desc.func_version;
+		    	f_info.irq_index      = func->desc.irq_index;
+		    	f_info.mmio_size      = func->desc.mmio_size;
+		    	f_info.caps           = func->desc.caps;
+		    	f_info.reg_layout_ver = func->desc.reg_layout_ver;
 
-		    if (copy_to_user(argp, &f_info, sizeof(f_info)))
-		        return -EFAULT;
-		    return 0;
+		    	if (copy_to_user(argp, &f_info, sizeof(f_info)))
+		        	return -EFAULT;
+		    	return 0;
 
 		case XACCEL_IOC_READ_REG:
-		    // Validate Capability
-		    if (!func->desc.caps && XACCEL_CAP_MMIO_RW )
-		        return -EOPNOTSUPP;
-		    // Copy data from userspace 
-		    if (copy_from_user(&req, argp, sizeof(req)))
-	   	        return -EFAULT;
-		    // Validate Offset
-		    if (req.offset + sizeof(__u32) > func->desc.mmio_size)
-		        return -EINVAL;
-		    // Read from MMIO
-		    req.value = ioread32(func->regs + req.offset);
-		    // Read from Userspace 
-		    if (copy_to_user(argp, &req, sizeof(req)))
+		    	// Validate Capability
+		    	if (!func->desc.caps && XACCEL_CAP_MMIO_RW )
+		        	return -EOPNOTSUPP;
+		    	// Copy data from userspace 
+		    	if (copy_from_user(&req, argp, sizeof(req)))
+	   	        	return -EFAULT;
+		    	// Validate Offset
+		    	if (req.offset + sizeof(__u32) > func->desc.mmio_size)
+		        	return -EINVAL;
+		    	// Read from MMIO
+		    	req.value = ioread32(func->regs + req.offset);
+		    	// Read from Userspace 
+		    	if (copy_to_user(argp, &req, sizeof(req)))
 			    return -EFAULT;
-		    return 0; 
+		    	return 0; 
 
 		case XACCEL_IOC_WRITE_REG:
-		    if (!func->desc.caps && XACCEL_CAP_MMIO_RW)
-		        return -EOPNOTSUPP;
-		// Copy from Userspace
-		    if (copy_from_user(&req, argp, sizeof(req)))
-		        return -EFAULT;
-		// Validate Offset
-		    if (req.offset + sizeof(__u32) > func->desc.mmio_size)
-		        return -EINVAL;
-		// Write to device
-		    iowrite32(req.value, func->regs + req.offset);
-		    return 0;
+		    	if (!func->desc.caps && XACCEL_CAP_MMIO_RW)
+		        	return -EOPNOTSUPP;
+			// Copy from Userspace
+		    	if (copy_from_user(&req, argp, sizeof(req)))
+		        	return -EFAULT;
+			// Validate Offset
+		    	if (req.offset + sizeof(__u32) > func->desc.mmio_size)
+		        	return -EINVAL;
+			// Write to device
+		    	iowrite32(req.value, func->regs + req.offset);
+			return 0;
 
 		default:
-		    return -ENOTTY;
+		    	return -ENOTTY;
 	}
 }
 
