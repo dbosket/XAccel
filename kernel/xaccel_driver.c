@@ -32,8 +32,9 @@ static int __init xaccel_init(void)
 	
 	enum test_case test= TWO_FUNCTION;
 	void *mmio_buf = NULL;
+	size_t buf_size = 0;
 	pr_info("Populating RAM with test object to emulate MMIO\n");
-	if (gen_xaccel_test_obj(test, &mmio_buf))
+	if (gen_xaccel_test_obj(test, &mmio_buf, &buf_size))
 	{
 	    pr_info("ERROR: Generating test scenario failed\n");
 	    return -EFAULT;
@@ -51,6 +52,7 @@ static int __init xaccel_init(void)
 		pr_err("Failed to allocate memory\n");
 		return -ENOMEM;
 	}
+	gps_xdev->mmio_size = buf_size;
 	if (xaccel_create_instance(mmio_buf, gps_xdev, &xaccel_fops))
 	{
 		pr_info("ERROR: Failed to create test scenario instance\n");
@@ -58,7 +60,6 @@ static int __init xaccel_init(void)
 	}	
 	
 	xaccel_print_xaccel_instance(gps_xdev);
-
 
 	// Error Handling Routine
 	if (IS_ERR(gps_xdev->dev))
@@ -201,6 +202,41 @@ static int xaccel_close(struct inode* node, struct file* fp)
 	return 0;
 }
 
+
+static int xaccel_reg_read(struct xaccel_function *func, __u32 offset, __u32 *value)
+{
+	// Ensure that pointers are valid
+	if (!func || !value)
+		return -EINVAL;
+	// Ensure offset is valid for 32 bit register
+	if (offset % sizeof(__u32))
+		return -EINVAL;
+	// Ensure MMIO regions is big enough for 32 bit access
+	if ((func->desc).mmio_size < sizeof(__u32))
+		return -EINVAL;
+	if (offset > (func->desc).mmio_size - sizeof(__u32)) 
+		return -EINVAL;
+
+	*value = xaccel_read32(func->regs, offset);
+	return 0;
+}
+
+static int xaccel_reg_write(struct xaccel_function *func, __u32 offset, __u32 value) 
+{
+	// Ensure that pointers are valid
+	if (!func || !value)
+		return -EINVAL;
+	// Ensure offset is valid for 32 bit register
+	if (offset % sizeof(__u32))
+		return -EINVAL;
+	// Ensure MMIO regions is big enough for 32 bit access
+	if ((func->desc).mmio_size < sizeof(__u32))
+		return -EINVAL;
+	if (offset > (func->desc).mmio_size - sizeof(__u32)) 
+		return  -EINVAL;
+	xaccel_write32(func->regs, offset, value);
+	return 0;
+}
 
 module_init(xaccel_init);
 module_exit(xaccel_exit);

@@ -3,20 +3,22 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <errno.h>
 #include "../kernel/xaccel_uapi.h"
 
 int xaccel_ioc_get_info(int fd);
 int xaccel_ioc_read(int fd, struct xaccel_reg_io* dest_buf);
-int xaccel_ioc_write(int fd, void* src_buf);
-
+int xaccel_ioc_write(int fd, struct xaccel_reg_io *req);
 
 int xaccel_ioc_get_info(int fd)
 {
        struct xaccel_info f_info = {-1, -1, -1, -1, -1, -1, -1};
 
-       if (ioctl(fd, XACCEL_IOC_GET_INFO, &f_info))
+       if (ioctl(fd, XACCEL_IOC_GET_INFO, &f_info) < 0)
        {
-	       perror("ERROR: ioctl(get_info) failed...\n");
+	       perror("ERROR: ioctl(get_info) failed...");
 	       return EXIT_FAILURE;
        }
 
@@ -35,61 +37,130 @@ int xaccel_ioc_get_info(int fd)
 
 int xaccel_ioc_read(int fd, struct xaccel_reg_io *req)
 {
-    if (ioctl(fd, XACCEL_IOC_READ_REG, req))
+    if (ioctl(fd, XACCEL_IOC_READ_REG, req) < 0 )
     {
-        perror("ERROR: ioctl(read) failed...\n");
+        perror("ERROR: ioctl(read) failed...");
 	return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
 }
 
+int xaccel_ioc_write(int fd, struct xaccel_reg_io *req)
+{
+    if (ioctl(fd, XACCEL_IOC_WRITE_REG, req) < 0)
+    {
+        perror("ERROR: ioctl(write) failed");
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+
+static void print_usage(const char *prog)
+{
+    fprintf(stderr, "Usage:\n");
+    fprintf(stderr, "  %s <device> info\n", prog);
+    fprintf(stderr, "  %s <device> read  <offset>\n", prog);
+    fprintf(stderr, "  %s <device> write <offset> <value>\n", prog);
+    fprintf(stderr, "\nExamples:\n");
+    fprintf(stderr, "  %s /dev/xaccel0_func0 info\n", prog);
+    fprintf(stderr, "  %s /dev/xaccel0_func0 read 0x0\n", prog);
+    fprintf(stderr, "  %s /dev/xaccel0_func0 write 0x0 0xdeadbeef\n", prog);
+}
+
+static uint32_t parse_u32(const char *s)
+{
+    char *end = NULL;
+    errno = 0;
+
+    unsigned long val = strtoul(s, &end, 0);
+
+    if (errno || end == s || *end != '\0' || val > UINT32_MAX) {
+        fprintf(stderr, "ERROR: invalid u32 value: %s\n", s);
+        exit(EXIT_FAILURE);
+    }
+
+    return (uint32_t)val;
+}
+
+
 
 int main (int argc, char** argv)
 {
+	if (argc < 3)
+	{
+		print_usage(argv[0]);
+		return EXIT_FAILURE;
+	}
 
-    if (argc < 2)
-    {
-	    fprintf(stderr, "ERROR: specify the device you want to use!\n");
-	    return EXIT_FAILURE;
-    }
-    fprintf(stdout, "First command arg is %s\n", argv[1]);
-    int fd = open(argv[1], O_RDWR);
-    if (fd < 0)
-    {
-	    fprintf(stderr, "ERROR: open() failed...\n");
-	    return EXIT_FAILURE;
-    }
-   
-    fprintf(stdout, "Open xaccel0_func0 opened successfully...\n"); 
-    struct xaccel_reg_io req = {
-	    .offset = 0x0,
-    };
+	const char *dev_path = argv[1];
+	const char *cmd = argv[2];
 
-    fprintf(stdout, "Running ioctl()...\n");
+	fprintf(stdout, "Device path: %s\n", dev_path);
 
-    // Support command line args
-    if (argc)
-    {
-    
-        switch (atoi(argv[2])){
-	    // Get call get info command 
-	    case 0:
-		xaccel_ioc_get_info(fd);
-		break;
-	    // Call read command
-            case 1:
-		if (!xaccel_ioc_read(fd, &req))
-		    printf("val = 0x%x\n", req.value);
-		break;
-	    // Call write command
-            case 2:
-		break;
-	    default:
-		xaccel_ioc_get_info(fd);
-		break;
-        }
-    close(fd);
+	int fd = open(dev_path, O_RDWR);
+    	if (fd < 0)
+    	{
+		fprintf(stderr, "ERROR: open() failed...\n");
+		return EXIT_FAILURE;
+   	}
 
-    return 0;
-    }
+	fprintf(stdout, "Opened %s successfully\n", dev_path);
+	int ret = EXIT_SUCCESS;
+
+	if (strcmp(cmd, "info") ==0)
+		ret= xaccel_ioc_get_info(fd);
+	else if (strcmp(cmd, "read") == 0) 
+	{
+		if (argc < 4)
+		{
+			print_usage(argv[0]);
+			ret = EXIT_FAILURE;
+			goto out;
+		}
+		struct xaccel_reg_io req = 
+		{
+	    		.offset = parse_u32(argv[3]),
+			.value  = 0,
+    		};
+
+		ret = xaccel_ioc_read(fd, &req);
+
+		if (ret == EXIT_SUCCESS){
+			printf("READ: offset=0x%x value=0x%x\n", req.offset, req.value);
+		}
+	}
+	else if (strcmp(cmd, "write") == 0)
+	{
+	       if (argc < 5)
+	       {
+			print_usage(argv[0]);
+ 			ret = EXIT_FAILURE;		
+			goto out;
+	       }
+		struct xaccel_reg_io req = 
+		{
+	    		.offset = parse_u32(argv[3]),
+			.value  = parse_u32(argv[4]),
+    		};
+
+		ret = xaccel_ioc_write(fd, &req);
+
+		if (ret == EXIT_SUCCESS){
+			printf("WRITE: offset=0x%x value=0x%x\n", req.offset, req.value);
+		}
+	}
+	else
+	{
+ 		fprintf(stderr, "ERROR: unknown command: %s\n", cmd);
+        	print_usage(argv[0]);
+        	ret = EXIT_FAILURE;
+	}
+
+out:
+	close(fd);
+	return ret;
 }
+
+

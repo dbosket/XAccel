@@ -16,8 +16,7 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 		pr_err("ERROR: Invalid Pointer to xdev obj passed\n");
 		return -EFAULT;
 	}
-
-	xdev->funcs = NULL; //Init to null for later checks
+	xdev->funcs = NULL;
 	
 #ifndef NO_HW
 	//TODO: Initialize mmio_base, mmio_size, from pdev?
@@ -40,7 +39,7 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 
 	if (xaccel_build_header(base_addr, desc_head) || xaccel_check_header(desc_head))
 	{
-		pr_info("ERROR: Failed to build descripter header...");
+		pr_err("ERROR: Failed to build descripter header...");
 		xaccel_cleanup(xdev);
 		return -1;
 		
@@ -48,13 +47,12 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 	xdev->hdr = desc_head;
 	xdev->num_functions = desc_head->num_functions;
 	xdev->mmio_base = base_addr;
-	xdev->mmio_size = desc_head->total_size;	
 
 	// Allocating space for function array
 	xdev->funcs = kcalloc(desc_head->num_functions, sizeof(struct xaccel_function), GFP_KERNEL);
 	if (!xdev->funcs)
 		{
-			pr_info("ERROR: Failed to allocate memory for function array\n");
+			pr_err("ERROR: Failed to allocate memory for function array\n");
 			xaccel_cleanup(xdev);
 			return -ENOMEM;
 		}
@@ -93,7 +91,6 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 			return -ENOMEM;
 
 		}
-
 		// For the runtime function object
 		func_desc_base = (__u8 *)(func_desc_base) + sizeof(struct xaccel_func_desc);
 
@@ -116,7 +113,7 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 			pr_err("cdev_add failed for func %u: %d\n", i, ret);
 			return -1;
 		}
-
+		// Creating Device for the function
 		pr_info("Creating device for function [%d] i",i);
 		func_cur->device = device_create(xdev->class, NULL, func_cur->devt, NULL, "xaccel%d_func%d", 0, i);
 
@@ -127,17 +124,16 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
     			xaccel_cleanup(xdev);
     			return ret;
 		}
-
 	}
-	
 	//up(&(xdev->sem));
 	pr_info("XACCEL_CREATE_INSTANCE() returning successfully...\n");
 	return 0;
 }
 
+
 void xaccel_cleanup(struct xaccel_dev *xdev)
 {
-	pr_info("xaccel_cleanup() starting...");
+	pr_info("XACCEL_CLEANUP()...");
 	if(!xdev) return;
 
 	// Release function objects and cdevs	
@@ -164,13 +160,14 @@ void xaccel_cleanup(struct xaccel_dev *xdev)
 	return;
 }
 
+
 // Is this descriptor valid
 int xaccel_check_header(struct xaccel_desc_header* header)
 {
 	if (!header) return -EFAULT;
 	if (header->magic == XACCEL_DESC_MAGIC) return 0;
     
-	pr_info("ERROR: Invalid Header\n");
+	pr_err("ERROR: Invalid Header\n");
 	return -EFAULT;
 }
 
@@ -181,12 +178,10 @@ int xaccel_build_header(void* source_addr, struct xaccel_desc_header* desc_head)
 	if (!desc_head || !source_addr)	return -EFAULT;
 	pr_info("Populating runtime descriptor header based on emulated mmap region...");
 
-#ifdef DEBUG 
-	printk("The value read at 0x%p, offset %x, is %x...", 
+	pr_info("The value read at 0x%p, offset %x, is %x...", 
 		source_addr, 
 		XACCEL_MAGIC_OFFSET, 
 		xaccel_read32(source_addr, XACCEL_MAGIC_OFFSET));
-#endif
 
 	(desc_head)->magic         = xaccel_read32(source_addr, XACCEL_MAGIC_OFFSET);
 	(desc_head)->version       = xaccel_read16(source_addr, XACCEL_VERSION_OFFSET);
@@ -197,9 +192,8 @@ int xaccel_build_header(void* source_addr, struct xaccel_desc_header* desc_head)
     	(desc_head)->checksum      = xaccel_read32(source_addr, XACCEL_CHECKSUM_OFFSET);
     	(desc_head)->device_id     = xaccel_read32(source_addr, XACCEL_DEVICE_ID_OFFSET);
 		
-#ifdef DEBUG 
 	pr_info("MAGIC Value is: %x...\n", (desc_head)->magic);
-#endif
+
   	return 0;
 }
 
@@ -220,7 +214,6 @@ int xaccel_build_function_descriptor(void* source_addr, struct xaccel_dev* xdev,
     	(func_desc)->ext_size       = xaccel_read32(source_addr, XACCEL_EXT_SIZE);
 
 	if (xaccel_verify_func_regs(xdev, func_desc)) return -EINVAL;
-
     	return 0;
 }
 
@@ -232,9 +225,8 @@ int xaccel_create_function_device(struct xaccel_dev *xdev, struct xaccel_func_de
 
 	func->parent     = xdev;
 	func->desc       = *func_desc;
-	func->regs       = xdev->mmio_base;
+	func->regs       = (__u8 *)xdev->mmio_base + func_desc->mmio_offset;
 	func->open_count = 0;
-
 	mutex_init(&(func->lock));
 	return 0;
 }
@@ -243,7 +235,6 @@ int xaccel_create_function_device(struct xaccel_dev *xdev, struct xaccel_func_de
 // This function will clean up the resources allocated for one runtime function object
 int xaccel_destroy_function_device(struct xaccel_function* func)
 {
-    
 	if (!func) return -EFAULT;
     	// Clean of character device registration
     	device_destroy(func->parent->class, func->devt);
@@ -268,7 +259,7 @@ int xaccel_verify_func_regs(struct xaccel_dev *xdev, struct xaccel_func_desc *fu
 	pr_info("Checking that function boundary is not beyond mmio boundary...");
 	if (mmap_boundary < cur_func_boundary) 
 	{
-		printk("MMIO boundary %p, Function Boundary %p...", mmap_boundary, cur_func_base);
+		pr_info("MMIO boundary %p, Function Boundary %p...", mmap_boundary, cur_func_base);
 		pr_err("Current function boundary is beyond the mmio_boundary");	
 		return -EINVAL;	
 	}
@@ -284,30 +275,30 @@ int xaccel_verify_func_regs(struct xaccel_dev *xdev, struct xaccel_func_desc *fu
 void xaccel_print_desc_header(struct xaccel_desc_header* head)
 {
 	if (!head) return;
-	printk("Printing Descriptor Header...");
-	printk("Header: Magic Number %x", head->magic);
-	printk("Header: Version %x", head->version);
-	printk("Header: Header Size %x", head->header_size);
-	printk("Header: Total Size %x", head->total_size);
-	printk("Header: Num Functions %d", head->num_functions);
-	printk("Header: Flag  %x", head->flags);
-	printk("Header: Checksum %x", head->checksum);
-	printk("Header: Device Id %x", head->device_id);
+	pr_info("Printing Descriptor Header...");
+	pr_info("Header: Magic Number %x", head->magic);
+	pr_info("Header: Version %x", head->version);
+	pr_info("Header: Header Size %x", head->header_size);
+	pr_info("Header: Total Size %x", head->total_size);
+	pr_info("Header: Num Functions %d", head->num_functions);
+	pr_info("Header: Flag  %x", head->flags);
+	pr_info("Header: Checksum %x", head->checksum);
+	pr_info("Header: Device Id %x", head->device_id);
 }
 
 
 void xaccel_print_func_desc(struct xaccel_func_desc desc)
 {
-	printk("Function: ID %d", desc.func_id);
-	printk("Function: Type %x", desc.func_type);
-	printk("Function: Version %d", desc.func_version);
-	printk("Function: IRQ Index %d", desc.irq_index);
-	printk("Function: MMIO Offset %x", desc.mmio_offset);
-	printk("Function: MMIO Size %x", desc.mmio_size);
-	printk("Function: Caps  %d", desc.caps);
-	printk("Function: Reg Layout Ver %d", desc.reg_layout_ver);
-	printk("Function: Ext Offset %x", desc.ext_offset);
-	printk("Function: Ext Size %x", desc.ext_size);
+	pr_info("Function: ID %d", desc.func_id);
+	pr_info("Function: Type %x", desc.func_type);
+	pr_info("Function: Version %d", desc.func_version);
+	pr_info("Function: IRQ Index %d", desc.irq_index);
+	pr_info("Function: MMIO Offset %x", desc.mmio_offset);
+	pr_info("Function: MMIO Size %x", desc.mmio_size);
+	pr_info("Function: Caps  %d", desc.caps);
+	pr_info("Function: Reg Layout Ver %d", desc.reg_layout_ver);
+	pr_info("Function: Ext Offset %x", desc.ext_offset);
+	pr_info("Function: Ext Size %x", desc.ext_size);
 }
 
 
@@ -315,10 +306,10 @@ void xaccel_print_xaccel_instance(struct xaccel_dev* xdev)
 {
 	xaccel_print_desc_header(xdev->hdr);
 
-	printk("Printing Function Descriptors...");
+	pr_info("Printing Function Descriptors...");
 	for (int i=0; i<xdev->num_functions; i++)
 	{
-		printk("Function [%d]...", i);
+		pr_info("Function [%d]...", i);
 		xaccel_print_func_desc(((xdev)->funcs[i]).desc);
 	}
 }

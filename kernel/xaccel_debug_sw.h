@@ -5,7 +5,19 @@
 #include <linux/types.h>
 
 #include "xaccel_core.h"
+#include "xaccel_uapi.h"
 #include "../include/xaccel_desc.h"
+
+#define XACCEL_TEST_DESC_REGION_SIZE  0x1000
+#define XACCEL_TEST_FUNC0_MMIO_OFFSET 0x1000
+#define XACCEL_TEST_FUNC1_MMIO_OFFSET 0x2000
+#define XACCEL_TEST_MMIO_SIZE         0x200
+
+#define XACCEL_TEST_ONE_FUNC_REGION_SIZE \
+	(XACCEL_TEST_FUNC0_MMIO_OFFSET + XACCEL_TEST_MMIO_SIZE)
+
+#define XACCEL_TEST_TWO_FUNC_REGION_SIZE \
+	(XACCEL_TEST_FUNC1_MMIO_OFFSET + XACCEL_TEST_MMIO_SIZE)
 
 
 enum test_case
@@ -26,7 +38,7 @@ enum test_case
  * Based on the test case specified, it will return a buffer to the start of a "MMIO MAPPED" region
  * Which will allows rapid testing of descriptor parsing and processing efforts
  */
-int gen_xaccel_test_obj(enum test_case test, void** buf_out);
+int gen_xaccel_test_obj(enum test_case test, void** buf_out, size_t *region_size_out);
 
 
 /* 

@@ -31,3 +31,7 @@ static int xaccel_open(struct inode* node, struct file* fp);
 static int xaccel_close(struct inode* node, struct file* fp);
 
 static long int xaccel_ioctl(struct file* fp, unsigned int cmd, unsigned long int arg);
+
+static int xaccel_reg_read(struct xaccel_function *func, __u32 offset, __u32 *value);
+
+static int xaccel_reg_write(struct xaccel_function *func, __u32 offset, __u32 value); 

@@ -21,36 +21,16 @@
 #include "../include/xaccel_macros.h"
 
 #define FUNC_DESC_OFFSET sizeof(struct xaccel_desc_header)
-/*
-#ifdef debug
-	#define XACCEL_REG_CONTROL    0x00
-	#define XACCEL_REG_STATUS     0X04
-	#define XACCEL_REG_ARG0       0x08
-	#define XACCEL_REG_ARG1       0X0C
-	#define XACCEL_REG_ARG2       0x10
-	#define XACCEL_REG_ARG3       0X14
-	#define XACCEL_REG_RESULT0    0x18
-	#define XACCEL_REG_RESULT1    0X1C
-
-
-	#define XACCEL_CNTRL_START    (1U << 0)
-	#define XACCEL_CNTRL_RESET    (1U << 1)
-	
-	#define XACCEL_STATUS_DONE    (1U << 0)
-	#define XACCEL_STATUS_BUSY    (1U << 1)
-	#define XACCEL_STATUS_ERROR   (1U << 2)
-
-	#define XACCEL_REG_LAYOUT_V1 1
-
-
-#endif
-*/
 
 struct xaccel_function
 {
 	struct xaccel_dev *parent;
 	struct xaccel_func_desc desc;
+#ifdef NO_HW
+	void *regs;
+#else
 	void __iomem *regs;
+#endif
 	struct cdev cdev;
 	dev_t devt;
 	struct device *device;
@@ -75,9 +55,6 @@ struct xaccel_dev
         struct semaphore sem;           /* Projects shared device-wide state */
 };
 
-
-
-
 // Create instance of struct xaccel_device
 int xaccel_create_instance(void* mmio_base, struct xaccel_dev* xdev, struct file_operations* fops);
 
@@ -93,11 +70,14 @@ void xaccel_cleanup(struct xaccel_dev *xdev);
 // Parse the descriptor recieved
 int xaccel_build_header(void* source_addr, struct xaccel_desc_header* head_out);
 
+
 // Reading a function descriptor from mmap address specified at source addr, and saves to header 
 int xaccel_build_function_descriptor(void* source_addr, struct xaccel_dev *xdev, struct xaccel_func_desc* desc_out);
 
+
 // Function to read in raw bytes, return 0 if positive or negative number otherwise
 int xaccel_check_header(struct xaccel_desc_header* header);
+
 
 // Create device for a particular function
 int xaccel_create_function_device(struct xaccel_dev *xdev, struct xaccel_func_desc *fdesc, struct xaccel_function* func_obj);
@@ -106,13 +86,20 @@ int xaccel_create_function_device(struct xaccel_dev *xdev, struct xaccel_func_de
 // Destory the devices created in the function
 int xaccel_destroy_function_device(struct xaccel_function *func);
 
+
 // Verifying function's registers are valid
 int xaccel_verify_func_regs(struct xaccel_dev *xdev, struct xaccel_func_desc *func_desc);
 
+
+// Print the xaccel instance (descriptor and functions)
 void xaccel_print_xaccel_instance(struct xaccel_dev* xdev);
 
+
+// Print the xaccel descriptor header
 void xaccel_print_desc_header(struct xaccel_desc_header* head);
 
+
+// Print the xaccel function descriptors
 void xaccel_print_func_desc(struct xaccel_func_desc desc);
 
 

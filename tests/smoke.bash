@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 
 XACCEL="/home/taco/Software/XAccel"
+USE_VALGRIND=${USE_VALGRIND:-0}
 
+if [[ "$USE_VALGRIND" == "1" ]]; then
+        RUN=(valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=99)
+else
+        RUN=()
+fi
 
 echo "STEP 1: COMPILING KERNEL MODULE AND USER APPLICATION"
 pushd "$XACCEL" > /dev/null || exit 1
@@ -33,23 +39,36 @@ else
 	exit 1
 fi
 
-
 echo "STEP 4: Run Smokescreen Tests"
 if [[ ! -x "$XACCEL/tests/smoketest" ]]; then
-	echo "ERROR: excutable not found or not executable"
-        exit 1	
+        echo "ERROR: executable not found or not executable"
+        exit 1
 fi
 
+for dev in /dev/xaccel*_func*; do
+        [[ -e "$dev" ]] || continue
 
-if [[ -n "${1:-}" ]]; then
-        "$XACCEL/tests/smoketest" "$1"
-else
-        for dev in /dev/xaccel*_func*; do
-                [[ -e "$dev" ]] || continue
-                echo "Running smoketest on $dev"
-                "$XACCEL/tests/smoketest" "$dev" "$1" || exit 1
-        done
-fi
+        echo "----------------------------------------"
+        echo "Running smoketest on $dev"
+        echo "----------------------------------------"
 
+        echo "[TEST] GET_INFO"
+        "${RUN[@]}" "$XACCEL/tests/smoketest" "$dev" info || exit 1
 
+        echo "[TEST] WRITE_REG offset=0x0 value=0xdeadbeef"
+        "${RUN[@]}" "$XACCEL/tests/smoketest" "$dev" write 0x0 0xdeadbeef || exit 1
 
+        echo "[TEST] READ_REG offset=0x0"
+        "${RUN[@]}" "$XACCEL/tests/smoketest" "$dev" read 0x0 || exit 1
+
+        echo "[TEST] WRITE_REG offset=0x4 value=0xcafebabe"
+        "${RUN[@]}" "$XACCEL/tests/smoketest" "$dev" write 0x4 0xcafebabe || exit 1
+
+        echo "[TEST] READ_REG offset=0x4"
+        "${RUN[@]}" "$XACCEL/tests/smoketest" "$dev" read 0x4 || exit 1
+
+        echo "[TEST] READ_REG boundary offset=0x1fc"
+        "${RUN[@]}" "$XACCEL/tests/smoketest" "$dev" read 0x1fc || exit 1
+
+        echo "[PASS] Smoketest passed for $dev"
+done
