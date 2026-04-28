@@ -9,33 +9,47 @@
 
 #ifdef __KERNEL__ 
     #include <linux/ioctl.h>
+    #include <linux/types.h>
 #else
     #include <sys/ioctl.h>
+    #include <stdint.h>
+
+typedef uint16_t __u16;
+typedef uint32_t __u32;
 #endif
 
 #include "../include/xaccel_desc.h"
 
-#define XACCEL_IOC_MAGIC        'x'
+#define XACCEL_IOC_MAGIC        'X'
+
+// Current capabilties that driver can expose to user space (To be expanded)
 #define XACCEL_IOC_GET_INFO	_IOR(XACCEL_IOC_MAGIC, 0, struct xaccel_info)
 #define XACCEL_IOC_READ_REG 	_IOWR(XACCEL_IOC_MAGIC, 1, struct xaccel_reg_io)
 #define XACCEL_IOC_WRITE_REG	_IOW(XACCEL_IOC_MAGIC, 2, struct xaccel_reg_io)
 
+#define XACCEL_FUNC_TYPE_INVALID 	0
+#define XACCEL_FUNC_TYPE_VENDOR_DEFINED 0xFFFF
+// Demo reference function types
+#define XACCEL_FUNC_TYPE_VECTOR_ADD     2
+#define XACCEL_FUNC_TYPE_SHA256_BLOCK   3
+#define XACCEL_FUNC_TYPE_VENDOR_DEFINED 0xFFFF
+
 struct xaccel_reg_io
 {
-    uint32_t offset; 	   // offset within this functions MMIO window
-    uint32_t value;        // value to be read back or value to write to 
+    __u32 offset; 	// Offset within this functions MMIO window
+    __u32 value;        // Value to be read back or value to write to 
 };
 
 struct xaccel_info
 {
-    uint16_t func_id;
-    uint16_t func_type;
-    uint16_t func_version;
-    uint16_t irq_index;
+    __u16 func_id;
+    __u16 func_type;
+    __u16 func_version;
+    __u16 irq_index;
 
-    uint32_t mmio_size;
-    uint32_t caps;
-    uint32_t reg_layout_ver;
+    __u32 mmio_size;
+    __u32 caps;
+    __u32 reg_layout_ver;
 };
 
 #endif
