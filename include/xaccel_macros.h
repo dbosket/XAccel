@@ -36,6 +36,7 @@
 
 // XACCEL Descriptor Header Offsets
 #define MAX_VERSION_SUPPORTED   1     // The latest version of descriptor supported
+#define MAX_FUNCS_SUPPORTED     2
 #define XACCEL_MAGIC_OFFSET     0x00
 #define XACCEL_VERSION_OFFSET   0x04
 #define XACCEL_HEAD_SIZE_OFFSET 0x06

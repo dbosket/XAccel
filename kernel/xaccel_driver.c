@@ -132,6 +132,7 @@ static long int xaccel_ioctl( struct file* fp, unsigned int cmd, unsigned long i
 		    	return 0;
 
 		case XACCEL_IOC_READ_REG:
+
 		    	// Validate Capability
 		    	if (!func->desc.caps && XACCEL_CAP_MMIO_RW )
 		        	return -EOPNOTSUPP;
@@ -139,7 +140,9 @@ static long int xaccel_ioctl( struct file* fp, unsigned int cmd, unsigned long i
 		    	if (copy_from_user(&req, argp, sizeof(req)))
 	   	        	return -EFAULT;
 		    	// Validate Offset
-		    	if (req.offset + sizeof(__u32) > func->desc.mmio_size)
+		    	if (req.offset & 0x3)
+		        	return -EINVAL;
+			if (req.offset + sizeof(__u32) > func->desc.mmio_size)
 		        	return -EINVAL;
 		    	// Read from MMIO
 		    	req.value = ioread32(func->regs + req.offset);
@@ -149,12 +152,15 @@ static long int xaccel_ioctl( struct file* fp, unsigned int cmd, unsigned long i
 		    	return 0; 
 
 		case XACCEL_IOC_WRITE_REG:
+
 		    	if (!func->desc.caps && XACCEL_CAP_MMIO_RW)
 		        	return -EOPNOTSUPP;
 			// Copy from Userspace
 		    	if (copy_from_user(&req, argp, sizeof(req)))
 		        	return -EFAULT;
 			// Validate Offset
+			if (req.offset & 0x3)
+		        	return -EINVAL;
 		    	if (req.offset + sizeof(__u32) > func->desc.mmio_size)
 		        	return -EINVAL;
 			// Write to device

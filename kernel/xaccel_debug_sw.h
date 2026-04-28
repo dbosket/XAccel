@@ -29,7 +29,7 @@ enum test_case
 	INVALID_VERSION,
 	INVALID_TOTAL_SIZE,
 	INVALID_FUNC_WINDOW,
-	IMPOSSIBLE_NUM_FUNCS,
+	IMPOSSIBLE_NUM_FUNC,
 	BAD_EXT_BLOCK
 };
 
@@ -73,6 +73,41 @@ static inline void write16(void *base, __u16 offset, __u16 val)
 static inline __u16 read16(void *base, __u16 offset){
 	return *(__u16 *)((__u8 *)base + offset);
 }
+
+static inline struct xaccel_desc_header init_func_header(__u32 magic, __u16 version, __u16 head_size, __u32 tot_size, __u16 num_funcs, __u16 flags, __u32 checksum, __u32 device_id)
+{
+	struct xaccel_desc_header head;
+
+	head.magic         = magic;
+	head.version       = version;
+	head.header_size   = head_size;
+	head.total_size    = tot_size;
+	head.num_functions = num_funcs;
+	head.flags         = flags;
+	head.checksum      = checksum;
+	head.device_id     = device_id;
+	return head;
+}
+
+static inline struct xaccel_func_desc init_func_desc(__u16 id, __u16 type, __u16 version, __u16 irq_index, __u32 offset, __u32 size, __u32 caps, __u32 reg_layout_ver, __u32 ext_offset, __u32 ext_size)
+{
+	
+	struct xaccel_func_desc fdesc;
+
+	fdesc.func_id        = id;
+	fdesc.func_type      = type;
+	fdesc.func_version   = version;
+	fdesc.irq_index      = irq_index;
+	fdesc.mmio_offset    = offset;
+	fdesc.mmio_size      = size;
+	fdesc.caps           = caps;
+	fdesc.reg_layout_ver = reg_layout_ver;
+	fdesc.ext_offset     = ext_offset;
+	fdesc.ext_size       = ext_size;
+	return fdesc;
+}
+
+
 
 
 #endif

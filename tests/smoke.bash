@@ -45,6 +45,21 @@ if [[ ! -x "$XACCEL/tests/smoketest" ]]; then
         exit 1
 fi
 
+expect_fail()
+{
+        local name="$1"
+        shift
+
+        echo "[NEGATIVE TEST] $name"
+
+        if "${RUN[@]}" "$@"; then
+                echo "[FAIL] $name unexpectedly passed"
+                exit 1
+        else
+                echo "[PASS] $name failed as expected"
+        fi
+}
+
 for dev in /dev/xaccel*_func*; do
         [[ -e "$dev" ]] || continue
 
@@ -69,6 +84,23 @@ for dev in /dev/xaccel*_func*; do
 
         echo "[TEST] READ_REG boundary offset=0x1fc"
         "${RUN[@]}" "$XACCEL/tests/smoketest" "$dev" read 0x1fc || exit 1
+
+        echo "[TEST] Negative/error-path cases"
+
+        expect_fail "READ_REG out-of-range offset=0x200" \
+                "$XACCEL/tests/smoketest" "$dev" read 0x200
+
+        expect_fail "WRITE_REG out-of-range offset=0x200" \
+                "$XACCEL/tests/smoketest" "$dev" write 0x200 0x12345678
+
+        expect_fail "READ_REG unaligned offset=0x1" \
+                "$XACCEL/tests/smoketest" "$dev" read 0x1
+
+        expect_fail "WRITE_REG unaligned offset=0x1" \
+                "$XACCEL/tests/smoketest" "$dev" write 0x1 0x12345678
+
+        expect_fail "Invalid command" \
+                "$XACCEL/tests/smoketest" "$dev" badcmd
 
         echo "[PASS] Smoketest passed for $dev"
 done

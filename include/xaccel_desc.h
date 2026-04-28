@@ -36,6 +36,7 @@ struct xaccel_desc_header
 	uint32_t device_id;	// Image ID
 } __packed;
 
+#define XACCEL_HEAD_SZ sizeof(struct xaccel_desc_header)
 
 struct xaccel_func_desc
 {
@@ -54,6 +55,7 @@ struct xaccel_func_desc
 	uint32_t ext_size;		 // Extension Block Size
 } __packed;	
 	
+#define XACCEL_FDESC_SZ sizeof(struct xaccel_func_desc)
 
 // Is this Descriptor Header Valid?
 static inline int xaccel_desc_magic_valid(const struct xaccel_desc_header *head)

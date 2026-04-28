@@ -165,10 +165,31 @@ void xaccel_cleanup(struct xaccel_dev *xdev)
 int xaccel_check_header(struct xaccel_desc_header* header)
 {
 	if (!header) return -EFAULT;
-	if (header->magic == XACCEL_DESC_MAGIC) return 0;
-    
-	pr_err("ERROR: Invalid Header\n");
-	return -EFAULT;
+
+	if (header->magic != XACCEL_DESC_MAGIC){
+	       pr_err("ERROR: Invalid header magic number");
+	       return -EFAULT;
+	}	       
+
+	if ( !(header->version) || (header->version > MAX_VERSION_SUPPORTED))
+	{
+		pr_err("ERROR: Invalid version number");
+		return -EFAULT;
+	}
+
+	if ( !(header->num_functions) || (header->num_functions > MAX_FUNCS_SUPPORTED))
+	{
+		pr_err("ERROR: Invalid number of functions");
+		return -EFAULT;
+	}
+
+	__u32 expected_total_size = header->header_size + header->num_functions * sizeof(struct xaccel_func_desc);
+	if (header->total_size != expected_total_size)
+	{
+		pr_err("ERROR: Invalid total size provided");
+		return -EFAULT;
+	}	
+	return 0;
 }
 
 

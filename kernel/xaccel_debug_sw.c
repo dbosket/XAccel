@@ -12,82 +12,78 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out, size_t *region_size
 
 	pr_info("The test case is %d...\n", test);
 
-	__u32 func_desc_sz = sizeof(struct xaccel_func_desc);	
-	__u32 desc_header_sz = sizeof(struct xaccel_desc_header);
 	__u32 alloc_size = 0;
 
 	struct xaccel_desc_header head;
 	struct xaccel_func_desc fdesc[2];
 	switch (test)	
 	{
-	    	// TEST CASE 1: One function, no irq, no, extension, properly formatted	
+	    	// TEST CASE 1: One function, no irq, no, extension, w formatted	
 		case ONE_FUNCTION:
-			head.magic         = XACCEL_DESC_MAGIC;
-			head.version       = 1;
-			head.header_size   = sizeof(struct xaccel_desc_header);
-			head.total_size    = sizeof(struct xaccel_desc_header) + sizeof(struct xaccel_func_desc);
-			head.num_functions = 1;
-			head.flags         = 0x0;
-			head.checksum      = 0x0;
-			head.device_id     = 1;
-
-			fdesc[0].func_id        = 0;
-			fdesc[0].func_type      = XACCEL_FUNC_TYPE_VECTOR_ADD;
-			fdesc[0].func_version   = 1;
-			fdesc[0].irq_index      = 0;
-			fdesc[0].mmio_offset    = XACCEL_TEST_FUNC0_MMIO_OFFSET;
-			fdesc[0].mmio_size      = XACCEL_TEST_MMIO_SIZE;
-			fdesc[0].caps           = XACCEL_CAP_MMIO_RW;
-			fdesc[0].reg_layout_ver = 0x1;
-			fdesc[0].ext_offset     = 0x0;
-			fdesc[0].ext_size       = 0x0;
+			
+			head = init_func_header(XACCEL_DESC_MAGIC, 1, XACCEL_HEAD_SZ, XACCEL_HEAD_SZ + XACCEL_FDESC_SZ,
+					1, 0x0, 0x0, 1);
+			fdesc[0] = init_func_desc(0, XACCEL_FUNC_TYPE_VECTOR_ADD, 1, 0, XACCEL_TEST_FUNC0_MMIO_OFFSET,
+					XACCEL_TEST_MMIO_SIZE, XACCEL_CAP_MMIO_RW, 0x1, 0x0, 0x0);
 
 			alloc_size = XACCEL_TEST_ONE_FUNC_REGION_SIZE;
 			break;
 
 		// TEST CASE 2: Two Function, no irq no, extension, properly formatted 
 		case TWO_FUNCTION:
-			head.magic         = XACCEL_DESC_MAGIC;
-			head.version       = 1;
-			head.header_size   = sizeof(struct xaccel_desc_header);
-			head.total_size    = sizeof(struct xaccel_desc_header) + 
-					     2 * sizeof(struct xaccel_func_desc);
-			head.num_functions = 2;
-			head.flags         = 0x0;
-			head.checksum      = 0x0;
-			head.device_id     = 9;
 
-			fdesc[0].func_id        = 0;
-			fdesc[0].func_type      = XACCEL_FUNC_TYPE_VECTOR_ADD;
-			fdesc[0].func_version   = 1;
-			fdesc[0].irq_index      = 0;
-			fdesc[0].mmio_offset    = XACCEL_TEST_FUNC0_MMIO_OFFSET;
-			fdesc[0].mmio_size      = XACCEL_TEST_MMIO_SIZE;
-			fdesc[0].caps           = XACCEL_CAP_MMIO_RW;
-			fdesc[0].reg_layout_ver = 0x1;
-			fdesc[0].ext_offset     = 0x0;
-			fdesc[0].ext_size       = 0x0;
-
-			fdesc[1].func_id        = 1;
-			fdesc[1].func_type      = XACCEL_FUNC_TYPE_SHA256_BLOCK;
-			fdesc[1].func_version   = 1;
-			fdesc[1].irq_index      = 0;
-			fdesc[1].mmio_offset    = XACCEL_TEST_FUNC1_MMIO_OFFSET;
-			fdesc[1].mmio_size      = XACCEL_TEST_MMIO_SIZE;
-			fdesc[1].caps           = XACCEL_CAP_MMIO_RW;
-			fdesc[1].reg_layout_ver = 0x1;
-			fdesc[1].ext_offset     = 0x0;
-			fdesc[1].ext_size       = 0x0;
+			head = init_func_header(XACCEL_DESC_MAGIC, 1, XACCEL_HEAD_SZ, XACCEL_HEAD_SZ + XACCEL_FDESC_SZ * 2,
+					2, 0x0, 0x0, 1);
+			fdesc[0] = init_func_desc(0, XACCEL_FUNC_TYPE_VECTOR_ADD, 1, 0, XACCEL_TEST_FUNC0_MMIO_OFFSET,
+					 XACCEL_TEST_MMIO_SIZE, XACCEL_CAP_MMIO_RW, 0x1, 0x0, 0x0);
+			fdesc[1] = init_func_desc(1, XACCEL_FUNC_TYPE_SHA256_BLOCK, 1, 0, XACCEL_TEST_FUNC1_MMIO_OFFSET,
+					 XACCEL_TEST_MMIO_SIZE, XACCEL_CAP_MMIO_RW, 0x1, 0x0, 0x0);
 
 			alloc_size = XACCEL_TEST_TWO_FUNC_REGION_SIZE;
 			break;
 
+
+		case INVALID_MAGIC:
+			head = init_func_header(0xE4404, 1, XACCEL_HEAD_SZ, XACCEL_HEAD_SZ + XACCEL_FDESC_SZ,
+					1, 0x0, 0x0, 1);
+			fdesc[0] = init_func_desc(0, XACCEL_FUNC_TYPE_VECTOR_ADD, 1, 0, XACCEL_TEST_FUNC0_MMIO_OFFSET,
+					 XACCEL_TEST_MMIO_SIZE, XACCEL_CAP_MMIO_RW, 0x1, 0x0, 0x0);
+			alloc_size = XACCEL_TEST_ONE_FUNC_REGION_SIZE;
+			break;
+
+		case INVALID_VERSION:
+
+			head = init_func_header(XACCEL_DESC_MAGIC, 10000, XACCEL_HEAD_SZ, XACCEL_HEAD_SZ + XACCEL_FDESC_SZ,
+					1, 0x0, 0x0, 1);
+			fdesc[0] = init_func_desc(0, XACCEL_FUNC_TYPE_VECTOR_ADD, 1, 0, XACCEL_TEST_FUNC0_MMIO_OFFSET,
+					XACCEL_TEST_MMIO_SIZE, XACCEL_CAP_MMIO_RW, 0x1, 0x0, 0x0);
+			alloc_size = XACCEL_TEST_ONE_FUNC_REGION_SIZE;
+			break;
+
+		case INVALID_TOTAL_SIZE:
+			head = init_func_header(XACCEL_DESC_MAGIC, 1, XACCEL_HEAD_SZ, XACCEL_FDESC_SZ,
+					1, 0x0, 0x0, 1);
+
+			fdesc[0] = init_func_desc(0, XACCEL_FUNC_TYPE_VECTOR_ADD, 1, 0, XACCEL_TEST_FUNC0_MMIO_OFFSET,
+					 XACCEL_TEST_MMIO_SIZE, XACCEL_CAP_MMIO_RW, 0x1, 0x0, 0x0);
+			alloc_size = XACCEL_TEST_ONE_FUNC_REGION_SIZE;
+			break;
+
+		case IMPOSSIBLE_NUM_FUNC:
+
+			head = init_func_header(XACCEL_DESC_MAGIC, 1, XACCEL_HEAD_SZ, XACCEL_HEAD_SZ + XACCEL_FDESC_SZ,
+					100000, 0x0, 0x0, 1);
+			fdesc[0] = init_func_desc(0, XACCEL_FUNC_TYPE_VECTOR_ADD, 1, 0, XACCEL_TEST_FUNC0_MMIO_OFFSET,
+					XACCEL_TEST_MMIO_SIZE, XACCEL_CAP_MMIO_RW, 0x1, 0x0, 0x0);
+			alloc_size = XACCEL_TEST_ONE_FUNC_REGION_SIZE;
+			break;
+
 	    	default:
 			pr_err("ERROR: Specify positive integer (1-8)\n");
-	    		return -1;
+			return -1;
 	}
 
-	__u32 desc_blob_size = desc_header_sz + (func_desc_sz) * head.num_functions;
+	__u32 desc_blob_size = XACCEL_HEAD_SZ + (XACCEL_FDESC_SZ) * head.num_functions;
 	pr_info("The allocated size for test 2 is 0x%x\n", alloc_size);
 
 	if (head.total_size != desc_blob_size) 
@@ -139,7 +135,7 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out, size_t *region_size
 			pr_err("ERROR: Failed to create function descriptor\n");
 			return -1;
 		}
-	func_start_region = (__u8*) func_start_region + func_desc_sz;
+	func_start_region = (__u8*) func_start_region + XACCEL_FDESC_SZ;
 	}
 	pr_info("The address of output buffer's pointer is 0x%p and the address of output buffer is 0x%p", buf_out, *buf_out);
 	pr_info("Emulated MMIO successfully...\n");
