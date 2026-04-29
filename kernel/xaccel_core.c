@@ -4,7 +4,7 @@
 // Creates an instance of xaccel device base on mmio region
 int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file_operations *xaccel_fops)
 {
-	pr_info("Creating instance of xaccel device");
+	pr_debug("Creating instance of xaccel device");
 
 	if (!base_addr)
 	{
@@ -23,7 +23,7 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 #endif
 	
 	// Initialize Semaphore
-	pr_info("Initializaing the semaphore\n");
+	pr_debug("Initializaing the semaphore\n");
 	sema_init(&(xdev->sem), MAX_LOCK_HOLDERS);
 	//down(&(xdev->sem));
 
@@ -57,7 +57,7 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 			return -ENOMEM;
 		}
 
-	pr_info("Allocating device numbers for character devices\n");
+	pr_debug("Allocating device numbers for character devices\n");
 	if (alloc_chrdev_region(&(xdev->base_devt), FIRST_MINOR, xdev->num_functions, XACCEL_NAME))
 		{
 			pr_err("ERROR: alloc_chrdev_region_failed...\n");
@@ -66,7 +66,7 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 		}
 
 	// Creating class for xaccel device
-	pr_info("Creating class for xaccel devices\n");
+	pr_debug("Creating class for xaccel devices\n");
 
 	// Initialize reminader of xaccel device instance
 	xdev->class = class_create(XACCEL_CLASS_NAME);
@@ -76,7 +76,7 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 	struct xaccel_function  *func_cur;
 	
 	// Initializing function array
-	pr_info("Initializing the function array for this xaccel_device\n");
+	pr_debug("Initializing the function array for this xaccel_device\n");
 	void* func_desc_base = (__u8 *)(base_addr) + FUNC_DESC_OFFSET;
 	
 	for(__u32 i=0; i<xdev->num_functions; i++){
@@ -102,11 +102,11 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 			return -1;
 		}
 		// Initialize character device for current function
-		pr_info("Initializing cdev...");	
+		pr_debug("Initializing cdev...");	
 		cdev_init(&(func_cur->cdev), xaccel_fops);
 		func_cur->cdev.owner = THIS_MODULE;
 		func_cur->devt = MKDEV(MAJOR(xdev->base_devt), MINOR(xdev->base_devt) + i);
-		pr_info("Addding cdev...");
+		pr_debug("Addding cdev...");
 		int ret = cdev_add(&(func_cur->cdev), func_cur->devt, 1);
 		if (ret)
 		{
@@ -114,7 +114,7 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 			return -1;
 		}
 		// Creating Device for the function
-		pr_info("Creating device for function [%d] i",i);
+		pr_debug("Creating device for function [%d] i",i);
 		func_cur->device = device_create(xdev->class, NULL, func_cur->devt, NULL, "xaccel%d_func%d", 0, i);
 
 		if (IS_ERR(func_cur->device)) {
@@ -126,7 +126,7 @@ int xaccel_create_instance(void* base_addr, struct xaccel_dev* xdev, struct file
 		}
 	}
 	//up(&(xdev->sem));
-	pr_info("XACCEL_CREATE_INSTANCE() returning successfully...\n");
+	pr_debug("XACCEL_CREATE_INSTANCE() returning successfully...\n");
 	return 0;
 }
 
@@ -197,9 +197,9 @@ int xaccel_check_header(struct xaccel_desc_header* header)
 int xaccel_build_header(void* source_addr, struct xaccel_desc_header* desc_head)
 {
 	if (!desc_head || !source_addr)	return -EFAULT;
-	pr_info("Populating runtime descriptor header based on emulated mmap region...");
+	pr_debug("Populating runtime descriptor header based on emulated mmap region...");
 
-	pr_info("The value read at 0x%p, offset %x, is %x...", 
+	pr_debug("The value read at 0x%p, offset %x, is %x...", 
 		source_addr, 
 		XACCEL_MAGIC_OFFSET, 
 		xaccel_read32(source_addr, XACCEL_MAGIC_OFFSET));
@@ -213,7 +213,7 @@ int xaccel_build_header(void* source_addr, struct xaccel_desc_header* desc_head)
     	(desc_head)->checksum      = xaccel_read32(source_addr, XACCEL_CHECKSUM_OFFSET);
     	(desc_head)->device_id     = xaccel_read32(source_addr, XACCEL_DEVICE_ID_OFFSET);
 		
-	pr_info("MAGIC Value is: %x...\n", (desc_head)->magic);
+	pr_debug("MAGIC Value is: %x...\n", (desc_head)->magic);
 
   	return 0;
 }
@@ -277,17 +277,17 @@ int xaccel_verify_func_regs(struct xaccel_dev *xdev, struct xaccel_func_desc *fu
 	__u8 *ext_boundary	= (__u8 *) ext_base + func_desc->ext_size;
 	
 	// Verify that Function's registers do not extend beyond total mmaped region
-	pr_info("Checking that function boundary is not beyond mmio boundary...");
+	pr_debug("Checking that function boundary is not beyond mmio boundary...");
 	if (mmap_boundary < cur_func_boundary) 
 	{
-		pr_info("MMIO boundary %p, Function Boundary %p...", mmap_boundary, cur_func_base);
+		pr_debug("MMIO boundary %p, Function Boundary %p...", mmap_boundary, cur_func_base);
 		pr_err("Current function boundary is beyond the mmio_boundary");	
 		return -EINVAL;	
 	}
 	
 	if (func_desc->ext_size > 0 )
 	{
-		pr_info("Checking that extension block is not beyond mmio boundary...");
+		pr_debug("Checking that extension block is not beyond mmio boundary...");
 		if (mmap_boundary < ext_boundary) return -EINVAL;
 	}
 	return 0;

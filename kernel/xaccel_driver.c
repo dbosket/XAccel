@@ -36,7 +36,7 @@ static int __init xaccel_init(void)
 	pr_info("Populating RAM with test object to emulate MMIO\n");
 	if (gen_xaccel_test_obj(test, &mmio_buf, &buf_size))
 	{
-	    pr_info("ERROR: Generating test scenario failed\n");
+	    pr_err("ERROR: Generating test scenario failed\n");
 	    return -EFAULT;
 	}
 #else
@@ -44,7 +44,7 @@ static int __init xaccel_init(void)
 
 #endif
 	// Allocate Space for the Device                                                                            
-        pr_info("Allocating space for device object\n");                                                            
+        pr_debug("Allocating space for device object\n");                                                            
         gps_xdev = kzalloc(sizeof(*gps_xdev), GFP_KERNEL);
 
 	if(!gps_xdev)
@@ -110,10 +110,8 @@ static long int xaccel_ioctl( struct file* fp, unsigned int cmd, unsigned long i
 	void __user *argp = (void __user *)arg;
 	struct xaccel_reg_io req;
 
-#ifdef DEBUG
-		    pr_info("Function's id is %d\n", func->desc.func_id);
-		    pr_info("Function's type is %d\n", func->desc.func_type);
-#endif
+	pr_debug("Function's id is %d\n", func->desc.func_id);
+	pr_debug("Function's type is %d\n", func->desc.func_type);
 
 	switch (cmd){
 		case XACCEL_IOC_GET_INFO:

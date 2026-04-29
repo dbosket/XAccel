@@ -10,7 +10,7 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out, size_t *region_size
 	}
 	*buf_out = NULL;
 
-	pr_info("The test case is %d...\n", test);
+	pr_debug("The test case is %d...\n", test);
 
 	__u32 alloc_size = 0;
 
@@ -72,7 +72,7 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out, size_t *region_size
 		case IMPOSSIBLE_NUM_FUNC:
 
 			head = init_func_header(XACCEL_DESC_MAGIC, 1, XACCEL_HEAD_SZ, XACCEL_HEAD_SZ + XACCEL_FDESC_SZ,
-					100000, 0x0, 0x0, 1);
+					1000, 0x0, 0x0, 1);
 			fdesc[0] = init_func_desc(0, XACCEL_FUNC_TYPE_VECTOR_ADD, 1, 0, XACCEL_TEST_FUNC0_MMIO_OFFSET,
 					XACCEL_TEST_MMIO_SIZE, XACCEL_CAP_MMIO_RW, 0x1, 0x0, 0x0);
 			alloc_size = XACCEL_TEST_ONE_FUNC_REGION_SIZE;
@@ -84,7 +84,7 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out, size_t *region_size
 	}
 
 	__u32 desc_blob_size = XACCEL_HEAD_SZ + (XACCEL_FDESC_SZ) * head.num_functions;
-	pr_info("The allocated size for test 2 is 0x%x\n", alloc_size);
+	pr_debug("The allocated size for test 2 is 0x%x\n", alloc_size);
 
 	if (head.total_size != desc_blob_size) 
 	{
@@ -105,7 +105,7 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out, size_t *region_size
 		return -EINVAL;
 	}
 
-	pr_info("Allocating emulated XACCEL region: desc_size=%u alloc_size=%u\n",
+	pr_debug("Allocating emulated XACCEL region: desc_size=%u alloc_size=%u\n",
 			head.total_size, alloc_size);
 
 	*buf_out = kzalloc(alloc_size, GFP_KERNEL);
@@ -117,7 +117,7 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out, size_t *region_size
 	}
 
 	// Generate descriptor header
-	pr_info("Generating the descriptor headers");
+	pr_debug("Generating the descriptor headers");
 	if( gen_xaccel_desc_header(*buf_out, head.version, head.total_size, 
 					head.num_functions, head.flags, head.checksum, head.device_id))
 	{
@@ -125,7 +125,7 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out, size_t *region_size
 		return -1;
 	}
 	// Generate function header(s)
-	pr_info("Generating the function headers");
+	pr_debug("Generating the function headers");
 	void* func_start_region = (__u8*)(*buf_out) + sizeof(struct xaccel_desc_header);
 	for (int i=0; i<head.num_functions; i++){
 		if ( gen_xaccel_function_desc(func_start_region, fdesc[i].func_id, fdesc[i].func_type,
@@ -137,8 +137,8 @@ int gen_xaccel_test_obj(enum test_case test, void** buf_out, size_t *region_size
 		}
 	func_start_region = (__u8*) func_start_region + XACCEL_FDESC_SZ;
 	}
-	pr_info("The address of output buffer's pointer is 0x%p and the address of output buffer is 0x%p", buf_out, *buf_out);
-	pr_info("Emulated MMIO successfully...\n");
+	pr_debug("The address of output buffer's pointer is 0x%p and the address of output buffer is 0x%p", buf_out, *buf_out);
+	pr_debug("Emulated MMIO successfully...\n");
 	return 0;
 }
 
@@ -148,12 +148,12 @@ int gen_xaccel_desc_header(void* buf, int16_t version, __u32 total_size, __u16 n
 	
 	if (!buf) return -EFAULT;
 
-	pr_info("Generating Descriptor Header...\n");
-	pr_info("The address is 0x%p, and offset is %x", buf, XACCEL_MAGIC_OFFSET);
-	pr_info("The value written should be in hex %x", 0xACCE1);
-	pr_info("Writing value...\n");
+	pr_debug("Generating Descriptor Header...\n");
+	pr_debug("The address is 0x%p, and offset is %x", buf, XACCEL_MAGIC_OFFSET);
+	pr_debug("The value written should be in hex %x", 0xACCE1);
+	pr_debug("Writing value...\n");
 	xaccel_write32(buf, XACCEL_MAGIC_OFFSET, XACCEL_DESC_MAGIC);
-	pr_info("The value read at 0x%p, offset %x, is %x...", buf, XACCEL_MAGIC_OFFSET, xaccel_read32(buf, XACCEL_MAGIC_OFFSET));
+	pr_debug("The value read at 0x%p, offset %x, is %x...", buf, XACCEL_MAGIC_OFFSET, xaccel_read32(buf, XACCEL_MAGIC_OFFSET));
 
 	xaccel_write16(buf, XACCEL_VERSION_OFFSET, version);
 	xaccel_write16(buf, XACCEL_HEAD_SIZE_OFFSET, sizeof(struct xaccel_desc_header));
